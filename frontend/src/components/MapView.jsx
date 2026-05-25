@@ -60,7 +60,7 @@ export default function MapView({ onEnd }) {
         navStarted,
         update,
         units,
-        heading,
+        subscribeHeading,
         mapViewMode,
         navViewMode,
     } = useApp();
@@ -83,17 +83,119 @@ export default function MapView({ onEnd }) {
 
     const tokenAvailable = hasMapboxToken();
 
-    const deviceHeading = useMemo(() => {
-        if (
-            userLocation &&
-            userLocation.speed !== null &&
-            userLocation.speed > 0.8 &&
-            userLocation.heading !== null
-        ) {
-            return userLocation.heading;
+    const userLocationRef = useRef(userLocation);
+    const mapReadyRef = useRef(mapReady);
+    const navStartedRef = useRef(navStarted);
+    const trackingModeRef = useRef(trackingMode);
+    const travelModeRef = useRef(travelMode);
+    const navViewModeRef = useRef(navViewMode);
+
+    const latestHeadingRef = useRef(0);
+    const lastCameraUpdateRef = useRef(0);
+    const cameraThrottlerRef = useRef(null);
+
+    useEffect(() => {
+        userLocationRef.current = userLocation;
+    }, [userLocation]);
+
+    useEffect(() => {
+        mapReadyRef.current = mapReady;
+    }, [mapReady]);
+
+    useEffect(() => {
+        navStartedRef.current = navStarted;
+    }, [navStarted]);
+
+    useEffect(() => {
+        trackingModeRef.current = trackingMode;
+    }, [trackingMode]);
+
+    useEffect(() => {
+        travelModeRef.current = travelMode;
+    }, [travelMode]);
+
+    useEffect(() => {
+        navViewModeRef.current = navViewMode;
+    }, [navViewMode]);
+
+    const syncMapCamera = useCallback((force = false) => {
+        const map = mapRef.current;
+        if (!map || !mapReadyRef.current || !navStartedRef.current || !trackingModeRef.current) return;
+
+        const now = performance.now();
+        const elapsed = now - lastCameraUpdateRef.current;
+
+        const performUpdate = () => {
+            const loc = userLocationRef.current;
+            const headingVal = latestHeadingRef.current;
+            if (!loc) return;
+
+            const targetZoom = travelModeRef.current === "cycling" ? 17.5 : (travelModeRef.current === "driving" ? 16 : 18.5);
+
+            map.easeTo({
+                center: [loc.lng, loc.lat],
+                bearing: headingVal,
+                zoom: targetZoom,
+                pitch: navViewModeRef.current === "3d" ? 60 : 0,
+                padding: { top: 0, bottom: 250, left: 0, right: 0 },
+                duration: 900,
+                easing: (t) => t
+            });
+
+            lastCameraUpdateRef.current = performance.now();
+            cameraThrottlerRef.current = null;
+        };
+
+        if (force || elapsed >= 200) {
+            if (cameraThrottlerRef.current) {
+                clearTimeout(cameraThrottlerRef.current);
+                cameraThrottlerRef.current = null;
+            }
+            performUpdate();
+        } else {
+            if (!cameraThrottlerRef.current) {
+                cameraThrottlerRef.current = setTimeout(performUpdate, 200 - elapsed);
+            }
         }
-        return heading ?? 0;
-    }, [userLocation, heading]);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (cameraThrottlerRef.current) {
+                clearTimeout(cameraThrottlerRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = subscribeHeading((h) => {
+            let currentDeviceHeading = h;
+            const uLoc = userLocationRef.current;
+            if (
+                uLoc &&
+                uLoc.speed !== null &&
+                uLoc.speed > 0.8 &&
+                uLoc.heading !== null
+            ) {
+                currentDeviceHeading = uLoc.heading;
+            }
+
+            latestHeadingRef.current = currentDeviceHeading;
+
+            if (userMarkerRef.current) {
+                const wrap = userMarkerRef.current.getElement();
+                const beam = wrap.querySelector(".tg-heading-beam");
+                if (beam) {
+                    beam.style.transform = `rotate(${currentDeviceHeading}deg)`;
+                    beam.style.opacity = "1";
+                }
+            }
+
+            syncMapCamera(false);
+        });
+
+        return unsubscribe;
+    }, [subscribeHeading, syncMapCamera]);
 
     useEffect(() => {
         if (navStarted) {
@@ -286,7 +388,7 @@ export default function MapView({ onEnd }) {
             return;
         }
 
-        const beamHeading = deviceHeading;
+        const beamHeading = latestHeadingRef.current;
         const hasHeading = true;
 
         if (!userMarkerRef.current) {
@@ -729,23 +831,16 @@ export default function MapView({ onEnd }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navStarted, route, mapReady, !!userLocation, mapViewMode]); // Omit full userLocation to avoid jumping bounds continuously
 
-    // Continuous tracking loop during navigation
+    // Trigger Mapbox camera synchronization when GPS location changes
     useEffect(() => {
-        const map = mapRef.current;
-        if (!map || !mapReady || !navStarted || !trackingMode || !userLocation) return;
-        
-        const targetZoom = travelMode === "driving" ? 16 : 18.5;
-        
-        map.easeTo({
-            center: [userLocation.lng, userLocation.lat],
-            bearing: deviceHeading,
-            zoom: targetZoom,
-            pitch: navViewMode === "3d" ? 60 : 0,
-            padding: { top: 0, bottom: 250, left: 0, right: 0 },
-            duration: 1000,
-            easing: (t) => t // linear easing for smooth continuous tracking
-        });
-    }, [userLocation, deviceHeading, navStarted, trackingMode, mapReady, travelMode, navViewMode]);
+        if (userLocation) {
+            syncMapCamera(true); // force update positioning on GPS updates
+        }
+    }, [userLocation, syncMapCamera]);
+
+    useEffect(() => {
+        syncMapCamera(true);
+    }, [mapReady, navStarted, trackingMode, travelMode, navViewMode, syncMapCamera]);
 
     const { distance, duration } =
         useMemo(() => {
@@ -866,11 +961,11 @@ export default function MapView({ onEnd }) {
             center: [userLocation.lng, userLocation.lat],
             zoom: targetZoom,
             pitch: navViewMode === "3d" ? 60 : 0,
-            bearing: deviceHeading,
+            bearing: latestHeadingRef.current,
             padding: { top: 0, bottom: 250, left: 0, right: 0 },
             duration: 500,
         });
-    }, [userLocation, mapReady, deviceHeading, travelMode, navViewMode]);
+    }, [userLocation, mapReady, travelMode, navViewMode]);
 
     if (!tokenAvailable) {
         return (

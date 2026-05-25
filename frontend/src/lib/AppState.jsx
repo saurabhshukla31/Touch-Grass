@@ -36,6 +36,18 @@ export function AppProvider({ children }) {
     const [state, setState] = useState(initial);
     const watchIdRef = useRef(null);
     const lastVectorRef = useRef({ cos: 0, sin: 0, initialized: false });
+    const headingRef = useRef(null);
+    const headingListeners = useRef(new Set());
+
+    const subscribeHeading = useCallback((cb) => {
+        headingListeners.current.add(cb);
+        if (headingRef.current !== null) {
+            cb(headingRef.current);
+        }
+        return () => {
+            headingListeners.current.delete(cb);
+        };
+    }, []);
 
     const update = useCallback((patch) => {
         setState((s) => ({ ...s, ...patch }));
@@ -221,7 +233,8 @@ export function AppProvider({ children }) {
                 const smoothedDeg = (smoothedRad * 180) / Math.PI;
                 const normalizedHeading = (smoothedDeg + 360) % 360;
 
-                setState((s) => ({ ...s, heading: normalizedHeading }));
+                headingRef.current = normalizedHeading;
+                headingListeners.current.forEach((cb) => cb(normalizedHeading));
             };
 
             // Use absolute device orientation if supported on Android to get actual true-north
@@ -358,6 +371,7 @@ export function AppProvider({ children }) {
             setNavViewMode,
             resetSession,
             togglePill,
+            subscribeHeading,
         }),
         [
             state,
@@ -372,6 +386,7 @@ export function AppProvider({ children }) {
             setNavViewMode,
             resetSession,
             togglePill,
+            subscribeHeading,
         ],
     );
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { X, Navigation2 } from "lucide-react";
 import { CompassNeedle } from "@/components/icons/CompassNeedle";
 import DestinationPill from "@/components/DestinationPill";
@@ -14,12 +14,19 @@ import {
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 
+function getShortestPathAngle(current, target) {
+    let diff = (target - current) % 360;
+    if (diff < -180) diff += 360;
+    if (diff > 180) diff -= 360;
+    return current + diff;
+}
+
 export default function CompassView({ onCancel }) {
     const {
         userLocation,
         destination,
         selectedCategory,
-        heading,
+        subscribeHeading,
         requestOrientation,
         orientationPermission,
         units,
@@ -27,6 +34,7 @@ export default function CompassView({ onCancel }) {
     } = useApp();
 
     const [showOrientPrompt, setShowOrientPrompt] = useState(false);
+    const [isAligned, setIsAligned] = useState(false);
     const proximityRef = useRef({ at100: false, at25: false });
 
     useEffect(() => {
@@ -67,28 +75,25 @@ export default function CompassView({ onCancel }) {
         }
     }, [distance]);
 
-    // Needle rotation: bearing relative to device heading.
-    const deviceHeading = useMemo(() => {
-        // Prioritize GPS movement heading if walking/driving (speed > 0.8 m/s ≈ 3 km/h)
-        if (
-            userLocation &&
-            userLocation.speed !== null &&
-            userLocation.speed > 0.8 &&
-            userLocation.heading !== null
-        ) {
-            return userLocation.heading;
-        }
-        return heading ?? 0;
-    }, [userLocation, heading]);
-
-    const needleRotation =
-        bearing != null ? ((bearing - deviceHeading + 540) % 360) - 180 : 0;
-    const ringRotation = -deviceHeading;
-
-    // Check if user is aligned with the destination (within +/- 8 degrees)
-    const isAligned = Math.abs(needleRotation) < 8;
-
     const wasAlignedRef = useRef(false);
+    const userLocationRef = useRef(userLocation);
+    const bearingRef = useRef(bearing);
+    const headingTextRef = useRef(null);
+    const isAlignedRef = useRef(false);
+
+    const ringRotationMV = useMotionValue(0);
+    const ringRotationSpring = useSpring(ringRotationMV, { stiffness: 80, damping: 20 });
+
+    const needleRotationMV = useMotionValue(0);
+    const needleRotationSpring = useSpring(needleRotationMV, { stiffness: 90, damping: 18 });
+
+    useEffect(() => {
+        userLocationRef.current = userLocation;
+    }, [userLocation]);
+
+    useEffect(() => {
+        bearingRef.current = bearing;
+    }, [bearing]);
 
     // Trigger subtle haptics once alignment is correct
     useEffect(() => {
@@ -99,6 +104,39 @@ export default function CompassView({ onCancel }) {
             wasAlignedRef.current = false;
         }
     }, [isAligned]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeHeading((h) => {
+            let currentDeviceHeading = h;
+            const uLoc = userLocationRef.current;
+            if (
+                uLoc &&
+                uLoc.speed !== null &&
+                uLoc.speed > 0.8 &&
+                uLoc.heading !== null
+            ) {
+                currentDeviceHeading = uLoc.heading;
+            }
+
+            if (headingTextRef.current) {
+                headingTextRef.current.textContent = `HEADING ${Math.round((currentDeviceHeading % 360 + 360) % 360)}°`;
+            }
+
+            const currentBearing = bearingRef.current;
+            const targetRing = -currentDeviceHeading;
+            const needleRotationRaw = currentBearing != null ? ((currentBearing - currentDeviceHeading + 540) % 360) - 180 : 0;
+
+            ringRotationMV.set(getShortestPathAngle(ringRotationMV.get(), targetRing));
+            needleRotationMV.set(getShortestPathAngle(needleRotationMV.get(), needleRotationRaw));
+
+            const aligned = Math.abs(needleRotationRaw) < 8;
+            if (aligned !== isAlignedRef.current) {
+                isAlignedRef.current = aligned;
+                setIsAligned(aligned);
+            }
+        });
+        return unsubscribe;
+    }, [subscribeHeading, ringRotationMV, needleRotationMV]);
 
     const ticks = useMemo(() => {
         const arr = [];
@@ -142,8 +180,7 @@ export default function CompassView({ onCancel }) {
                 {/* Tick marks (rotated with heading) */}
                 <motion.div
                     className="absolute inset-0"
-                    animate={{ rotate: ringRotation }}
-                    transition={{ type: "spring", stiffness: 80, damping: 20 }}
+                    style={{ rotate: ringRotationSpring }}
                 >
                     {ticks.map((i) => (
                         <div
@@ -178,9 +215,7 @@ export default function CompassView({ onCancel }) {
                 {/* Needle */}
                 <motion.div
                     className="absolute"
-                    animate={{ rotate: needleRotation }}
-                    transition={{ type: "spring", stiffness: 90, damping: 18 }}
-                    style={{ transformOrigin: "50% 50%" }}
+                    style={{ transformOrigin: "50% 50%", rotate: needleRotationSpring }}
                 >
                     <CompassNeedle
                         size={260}
@@ -207,8 +242,8 @@ export default function CompassView({ onCancel }) {
                         {bearing != null ? `${Math.round(bearing)}° ${bearingLabel}` : "—"}
                     </span>
                     <span className="h-1 w-1 rounded-full bg-white/20" />
-                    <span data-testid="compass-heading">
-                        HEADING {(Math.round(deviceHeading) % 360 + 360) % 360}°
+                    <span ref={headingTextRef} data-testid="compass-heading">
+                        HEADING —°
                     </span>
                 </div>
             </div>
