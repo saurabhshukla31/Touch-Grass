@@ -150,7 +150,15 @@ export default function MapView({ onEnd }) {
 
             setTimeout(() => {
                 map.resize();
-            }, 300);
+            }, 500);
+
+            setTimeout(() => {
+                map.resize();
+            }, 1200);
+
+            window.addEventListener("resize", () => {
+                map.resize();
+            });
         });
 
         mapRef.current = map;
@@ -805,7 +813,7 @@ export default function MapView({ onEnd }) {
 
     if (!tokenAvailable) {
         return (
-            <div className="flex h-screen items-center justify-center bg-black text-white">
+            <div className="flex h-dvh items-center justify-center bg-black text-white">
                 Missing Mapbox token
             </div>
         );
