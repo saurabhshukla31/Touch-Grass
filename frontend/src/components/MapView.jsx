@@ -245,8 +245,8 @@ export default function MapView({ onEnd }) {
                 if (firstFetch) setRouteLoading(false);
             });
         return () => ac.abort();
-    }, [
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
         userLocation?.lat,
         userLocation?.lng,
         destination?.lat,
@@ -349,8 +349,8 @@ export default function MapView({ onEnd }) {
                 duration: 500,
             });
         }
-    }, [
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
         navStarted,
         route,
         userLocation?.lat,
