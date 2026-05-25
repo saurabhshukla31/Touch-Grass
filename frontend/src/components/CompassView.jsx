@@ -85,6 +85,21 @@ export default function CompassView({ onCancel }) {
         bearing != null ? ((bearing - deviceHeading + 540) % 360) - 180 : 0;
     const ringRotation = -deviceHeading;
 
+    // Check if user is aligned with the destination (within +/- 8 degrees)
+    const isAligned = Math.abs(needleRotation) < 8;
+
+    const wasAlignedRef = useRef(false);
+
+    // Trigger subtle haptics once alignment is correct
+    useEffect(() => {
+        if (isAligned && !wasAlignedRef.current) {
+            haptics.soft();
+            wasAlignedRef.current = true;
+        } else if (!isAligned) {
+            wasAlignedRef.current = false;
+        }
+    }, [isAligned]);
+
     const ticks = useMemo(() => {
         const arr = [];
         for (let i = 0; i < 36; i++) arr.push(i);
@@ -168,6 +183,7 @@ export default function CompassView({ onCancel }) {
                     <CompassNeedle
                         size={260}
                         accent={selectedCategory?.accent || "#10B981"}
+                        isAligned={isAligned}
                     />
                 </motion.div>
             </div>
@@ -187,6 +203,10 @@ export default function CompassView({ onCancel }) {
                     <span className="h-1 w-1 rounded-full bg-white/20" />
                     <span data-testid="compass-bearing">
                         {bearing != null ? `${Math.round(bearing)}° ${bearingLabel}` : "—"}
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-white/20" />
+                    <span data-testid="compass-heading">
+                        HEADING {(Math.round(deviceHeading) % 360 + 360) % 360}°
                     </span>
                 </div>
             </div>
