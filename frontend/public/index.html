@@ -48,25 +48,5 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>
-      eruda.init();
-
-      requestAnimationFrame(function pinTopRight() {
-        var container = document.getElementById("eruda");
-        if (container && container.shadowRoot) {
-          var btn = container.shadowRoot.querySelector(".eruda-entry-btn");
-          if (btn) {
-            btn.style.setProperty("top", "20px", "important");
-            btn.style.setProperty("right", "20px", "important");
-            btn.style.setProperty("bottom", "auto", "important");
-            btn.style.setProperty("left", "auto", "important");
-            return;
-          }
-        }
-        setTimeout(pinTopRight, 50);
-      });
-    </script>
   </body>
 </html>
