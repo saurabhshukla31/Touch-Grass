@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import {
@@ -15,6 +15,7 @@ import {
 import { GrassLeaf } from "@/components/icons/GrassLeaf";
 import { formatDistance } from "@/lib/geo";
 import { haptics } from "@/lib/haptics";
+import { useApp } from "@/lib/AppState";
 
 const ICONS = {
     grass: GrassLeaf,
@@ -40,7 +41,8 @@ export default function DestinationPill({
     anchor = "top",
     className = "",
 }) {
-    const [open, setOpen] = useState(false);
+    const { pillOpen, togglePill } = useApp();
+    const open = pillOpen;
     if (!category) return null;
     const Icon = ICONS[category.iconKey] || Shuffle;
 
@@ -56,7 +58,7 @@ export default function DestinationPill({
                 }
                 onClick={() => {
                     haptics.tap();
-                    setOpen((v) => !v);
+                    togglePill();
                 }}
                 layout
                 transition={{ type: "spring", stiffness: 360, damping: 28 }}

@@ -27,6 +27,7 @@ const initial = {
     orientationPermission: "unknown",
     heading: null, // device heading degrees (0-360), magnetometer
     error: null,
+    pillOpen: false,
 };
 
 export function AppProvider({ children }) {
@@ -234,6 +235,41 @@ export function AppProvider({ children }) {
         }
     }, [update]);
 
+    const pillTimerRef = useRef(null);
+
+    const togglePill = useCallback(() => {
+        if (pillTimerRef.current) {
+            clearTimeout(pillTimerRef.current);
+            pillTimerRef.current = null;
+        }
+        setState((s) => ({ ...s, pillOpen: !s.pillOpen }));
+    }, []);
+
+    // Automatically manage pillOpen timer when destination changes or tab switches
+    useEffect(() => {
+        if (state.destination) {
+            setState((s) => ({ ...s, pillOpen: true }));
+            if (pillTimerRef.current) {
+                clearTimeout(pillTimerRef.current);
+            }
+            pillTimerRef.current = setTimeout(() => {
+                setState((s) => ({ ...s, pillOpen: false }));
+                pillTimerRef.current = null;
+            }, 5000);
+        } else {
+            setState((s) => ({ ...s, pillOpen: false }));
+            if (pillTimerRef.current) {
+                clearTimeout(pillTimerRef.current);
+                pillTimerRef.current = null;
+            }
+        }
+        return () => {
+            if (pillTimerRef.current) {
+                clearTimeout(pillTimerRef.current);
+            }
+        };
+    }, [state.destination, state.currentTab]);
+
     useEffect(
         () => () => {
             stopWatchingLocation();
@@ -291,6 +327,7 @@ export function AppProvider({ children }) {
             navStarted: false,
             homeOverlay: null,
             currentTab: "compass",
+            pillOpen: false,
         }));
     }, []);
 
@@ -306,6 +343,7 @@ export function AppProvider({ children }) {
             setTravelMode,
             setHaptics,
             resetSession,
+            togglePill,
         }),
         [
             state,
@@ -318,6 +356,7 @@ export function AppProvider({ children }) {
             setTravelMode,
             setHaptics,
             resetSession,
+            togglePill,
         ],
     );
 
