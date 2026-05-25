@@ -7,7 +7,7 @@ import React from "react";
 export const CATEGORIES = [
     {
         key: "grass",
-        label: "Grass",
+        label: "Touch Grass",
         searchCanonical: "park",
         // Fallback alternatives if the primary returns no results in the area.
         searchAlternatives: ["nature_preserve", "garden", "sports_field"],
