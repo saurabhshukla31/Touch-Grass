@@ -1,21 +1,39 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Footprints, Bike, Car, Play, Square, X, Navigation2 } from "lucide-react";
+import {
+    Footprints,
+    Bike,
+    Car,
+    Play,
+    Square,
+    X,
+    Navigation2,
+} from "lucide-react";
+
 import { useApp } from "@/lib/AppState";
 import {
     getMapboxToken,
     hasMapboxToken,
     fetchRoute,
 } from "@/lib/mapbox";
+
 import DestinationPill from "@/components/DestinationPill";
+
 import {
     formatDistance,
     formatDuration,
     haversineMeters,
     etaSecondsFromDistance,
 } from "@/lib/geo";
+
 import { haptics } from "@/lib/haptics";
 
 const PROFILES = [
@@ -25,6 +43,8 @@ const PROFILES = [
 ];
 
 const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
+
+const STEP_ADVANCE_METERS = 25;
 
 export default function MapView({ onEnd }) {
     const {
@@ -40,23 +60,38 @@ export default function MapView({ onEnd }) {
 
     const containerRef = useRef(null);
     const mapRef = useRef(null);
+
     const userMarkerRef = useRef(null);
     const destMarkerRef = useRef(null);
+
+    const lastFetchRef = useRef(null);
+
     const [route, setRoute] = useState(null);
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState(null);
     const [mapReady, setMapReady] = useState(false);
 
+    const [currentStepIdx, setCurrentStepIdx] = useState(0);
+
     const tokenAvailable = hasMapboxToken();
 
-    // Init map once. We intentionally don't reinit when location/destination
-    // change — the map updates marker positions through other effects.
+    const accentColor =
+        selectedCategory?.accent ?? "#10B981";
+
     useEffect(() => {
         if (!tokenAvailable) return;
+
         if (!containerRef.current || mapRef.current) return;
+
         mapboxgl.accessToken = getMapboxToken();
+
         const start =
-            userLocation || destination || { lng: 0, lat: 20 };
+            userLocation ??
+            destination ?? {
+                lng: 0,
+                lat: 20,
+            };
+
         const map = new mapboxgl.Map({
             container: containerRef.current,
             style: MAP_STYLE,
@@ -67,151 +102,292 @@ export default function MapView({ onEnd }) {
             pitchWithRotate: false,
             dragRotate: false,
         });
+
         map.on("load", () => {
-            // Lightly customize the dark style — keep roads visible.
             try {
-                const layers = map.getStyle().layers || [];
+                const layers =
+                    map.getStyle().layers ?? [];
+
                 layers.forEach((l) => {
                     if (!l) return;
+
                     if (
                         l.type === "line" &&
                         /road|street|highway/i.test(l.id)
                     ) {
                         try {
-                            map.setPaintProperty(l.id, "line-color", "#3A3A42");
-                        } catch {
-                            /* ignore */
-                        }
+                            map.setPaintProperty(
+                                l.id,
+                                "line-color",
+                                "#4D4E58"
+                            );
+                        } catch { }
                     }
+
                     if (l.type === "symbol") {
                         try {
                             map.setPaintProperty(
                                 l.id,
                                 "text-color",
-                                "rgba(255,255,255,0.62)",
+                                "rgba(255,255,255,0.62)"
                             );
+
                             map.setPaintProperty(
                                 l.id,
                                 "text-halo-color",
-                                "rgba(0,0,0,0.85)",
+                                "rgba(0,0,0,0.85)"
                             );
-                        } catch {
-                            /* ignore */
-                        }
+                        } catch { }
                     }
                 });
-            } catch {
-                /* ignore */
-            }
+            } catch { }
+
             setMapReady(true);
-            // Defensive: the container is laid out inside an AnimatePresence
-            // transition, so its size may have been smaller at construction.
-            // Force a resize once everything has settled.
-            requestAnimationFrame(() => map.resize());
-            setTimeout(() => map.resize(), 300);
+
+            requestAnimationFrame(() => {
+                map.resize();
+            });
+
+            setTimeout(() => {
+                map.resize();
+            }, 300);
         });
+
         mapRef.current = map;
 
-        // Keep the canvas in sync with container size changes (e.g. when the
-        // bottom card grows / address bar collapses).
         const ro = new ResizeObserver(() => {
             try {
                 map.resize();
-            } catch {
-                /* ignore */
-            }
+            } catch { }
         });
+
         ro.observe(containerRef.current);
 
         return () => {
             ro.disconnect();
+
+            userMarkerRef.current?.remove();
+            destMarkerRef.current?.remove();
+
+            userMarkerRef.current = null;
+            destMarkerRef.current = null;
+
             map.remove();
+
             mapRef.current = null;
+
             setMapReady(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tokenAvailable]);
 
-    // User marker
     useEffect(() => {
         const map = mapRef.current;
-        if (!map || !mapReady || !userLocation) return;
+
+        if (!map || !mapReady) return;
+
+        if (!userLocation) {
+            userMarkerRef.current?.remove();
+            userMarkerRef.current = null;
+            return;
+        }
+
+        const heading = userLocation.heading ?? 0;
+        const hasHeading = userLocation.heading !== null && userLocation.heading !== undefined;
+
         if (!userMarkerRef.current) {
-            const el = document.createElement("div");
-            el.setAttribute("data-testid", "user-marker");
-            el.style.cssText =
-                "width:22px;height:22px;border-radius:50%;background:#10B981;box-shadow:0 0 0 6px rgba(16,185,129,0.18),0 0 18px rgba(16,185,129,0.55);border:2px solid #08080A;";
             const wrap = document.createElement("div");
-            wrap.style.cssText = "position:relative;";
+            wrap.style.cssText = "position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;";
+
+            // Pulsing background ring
             const pulse = document.createElement("div");
-            pulse.style.cssText =
-                "position:absolute;inset:-12px;border-radius:50%;background:rgba(16,185,129,0.22);";
+            pulse.style.cssText = `position:absolute;width:40px;height:40px;border-radius:50%;background:${accentColor};opacity:0.15;z-index:0;`;
             pulse.className = "tg-pulse";
+
+            // Heading beam cone
+            const beam = document.createElement("div");
+            beam.className = "tg-heading-beam";
+            beam.style.cssText = `position:absolute;inset:-24px;display:flex;align-items:center;justify-content:center;z-index:1;transform:rotate(${heading}deg);transition:transform 0.25s ease-out;opacity:${hasHeading ? 1 : 0};`;
+            beam.innerHTML = `
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+                    <path d="M36 36 L20 4 A24 24 0 0 1 52 4 Z" fill="url(#beam-gradient)" opacity="0.4" />
+                    <defs>
+                        <linearGradient id="beam-gradient" x1="36" y1="36" x2="36" y2="4" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="${accentColor}" stop-opacity="1"/>
+                            <stop offset="100%" stop-color="${accentColor}" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            `;
+
+            // White outer ring with dark border
+            const dotRing = document.createElement("div");
+            dotRing.style.cssText = "width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.35);border:2px solid #08080A;display:flex;align-items:center;justify-content:center;z-index:2;";
+            dotRing.setAttribute("data-testid", "user-marker");
+
+            // Inner solid green dot
+            const innerDot = document.createElement("div");
+            innerDot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${accentColor};`;
+            dotRing.appendChild(innerDot);
+
             wrap.appendChild(pulse);
-            wrap.appendChild(el);
-            const marker = new mapboxgl.Marker({ element: wrap })
+            wrap.appendChild(beam);
+            wrap.appendChild(dotRing);
+
+            userMarkerRef.current = new mapboxgl.Marker({
+                element: wrap,
+            })
                 .setLngLat([userLocation.lng, userLocation.lat])
                 .addTo(map);
-            userMarkerRef.current = marker;
         } else {
-            userMarkerRef.current.setLngLat([
-                userLocation.lng,
-                userLocation.lat,
-            ]);
-        }
-    }, [userLocation, mapReady]);
+            const marker = userMarkerRef.current;
+            marker.setLngLat([userLocation.lng, userLocation.lat]);
 
-    // Destination marker
+            const wrap = marker.getElement();
+            const beam = wrap.querySelector(".tg-heading-beam");
+            if (beam) {
+                beam.style.transform = `rotate(${heading}deg)`;
+                beam.style.opacity = hasHeading ? "1" : "0";
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userLocation, mapReady, accentColor]);
+
     useEffect(() => {
         const map = mapRef.current;
-        if (!map || !mapReady || !destination) return;
+
+        if (!map || !mapReady) return;
+
+        if (!destination) {
+            destMarkerRef.current?.remove();
+            destMarkerRef.current = null;
+            return;
+        }
+
         if (!destMarkerRef.current) {
             const el = document.createElement("div");
-            el.setAttribute("data-testid", "dest-marker");
-            el.style.cssText = `position:relative;width:34px;height:34px;border-radius:14px;background:rgba(20,20,24,0.85);border:1px solid ${
-                selectedCategory?.accent || "#10B981"
-            };display:flex;align-items:center;justify-content:center;backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,0.5),0 0 0 4px rgba(16,185,129,0.08);`;
-            el.innerHTML = `<div style="width:8px;height:8px;border-radius:50%;background:${
-                selectedCategory?.accent || "#10B981"
-            };"></div>`;
-            const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
-                .setLngLat([destination.lng, destination.lat])
-                .addTo(map);
-            destMarkerRef.current = marker;
+
+            el.setAttribute(
+                "data-testid",
+                "dest-marker"
+            );
+
+            el.style.cssText =
+                `position:relative;width:34px;height:34px;border-radius:14px;` +
+                `background:rgba(20,20,24,0.85);border:1px solid ${accentColor};` +
+                `display:flex;align-items:center;justify-content:center;` +
+                `backdrop-filter:blur(20px);` +
+                `box-shadow:0 8px 24px rgba(0,0,0,0.5),0 0 0 4px rgba(16,185,129,0.08);`;
+
+            const dot =
+                document.createElement("div");
+
+            dot.setAttribute(
+                "data-role",
+                "dest-dot"
+            );
+
+            dot.style.cssText =
+                `width:8px;height:8px;border-radius:50%;background:${accentColor};`;
+
+            el.appendChild(dot);
+
+            destMarkerRef.current =
+                new mapboxgl.Marker({
+                    element: el,
+                    anchor: "center",
+                })
+                    .setLngLat([
+                        destination.lng,
+                        destination.lat,
+                    ])
+                    .addTo(map);
         } else {
             destMarkerRef.current.setLngLat([
                 destination.lng,
                 destination.lat,
             ]);
-        }
-    }, [destination, mapReady, selectedCategory]);
 
-    // Fetch route on travel-mode change, or when the user has moved far enough
-    // from where the last route was computed. This avoids the "Calculating…"
-    // flicker every GPS tick.
-    const lastFetchRef = useRef(null);
+            const el =
+                destMarkerRef.current.getElement();
+
+            if (el) {
+                el.style.borderColor =
+                    accentColor;
+
+                const dot = el.querySelector(
+                    "[data-role='dest-dot']"
+                );
+
+                if (dot) {
+                    dot.style.background =
+                        accentColor;
+                }
+            }
+        }
+    }, [destination, mapReady, accentColor]);
+
     useEffect(() => {
-        if (!userLocation || !destination || !tokenAvailable) return;
+        if (
+            !userLocation ||
+            !destination ||
+            !tokenAvailable
+        ) {
+            return;
+        }
 
         const last = lastFetchRef.current;
-        const sameProfile = last && last.profile === travelMode;
-        const sameDest =
-            last && last.destLat === destination.lat && last.destLng === destination.lng;
-        if (last && sameProfile && sameDest) {
-            const moved = haversineMeters(userLocation, {
-                lat: last.fromLat,
-                lng: last.fromLng,
-            });
-            // Skip refetch if user hasn't moved meaningfully. 25 m for walking
-            // is plenty; the haversine display below stays live regardless.
-            if (moved < 25) return;
+
+        const routeResetNeeded =
+            !last ||
+            last.destLat !== destination.lat ||
+            last.destLng !== destination.lng ||
+            last.profile !== travelMode;
+
+        if (routeResetNeeded) {
+            lastFetchRef.current = null;
+
+            setRoute(null);
+            setRouteError(null);
+            setCurrentStepIdx(0);
+        }
+
+        const updatedLast =
+            lastFetchRef.current;
+
+        if (updatedLast) {
+            const sameProfile =
+                updatedLast.profile ===
+                travelMode;
+
+            const sameDest =
+                updatedLast.destLat ===
+                destination.lat &&
+                updatedLast.destLng ===
+                destination.lng;
+
+            if (sameProfile && sameDest) {
+                const moved =
+                    haversineMeters(
+                        userLocation,
+                        {
+                            lat: updatedLast.fromLat,
+                            lng: updatedLast.fromLng,
+                        }
+                    );
+
+                if (moved < 25) return;
+            }
+        }
+
+        const firstFetch =
+            !lastFetchRef.current;
+
+        if (firstFetch) {
+            setRouteLoading(true);
         }
 
         const ac = new AbortController();
-        // Only surface the "Calculating…" state for the very first fetch.
-        // Subsequent silent refetches keep the previous values in view.
-        const firstFetch = !route;
-        if (firstFetch) setRouteLoading(true);
 
         fetchRoute({
             from: userLocation,
@@ -222,13 +398,20 @@ export default function MapView({ onEnd }) {
             .then((r) => {
                 if (!r) {
                     if (firstFetch) {
-                        setRoute(null);
-                        setRouteError("No route");
+                        setRouteError(
+                            "No route found"
+                        );
                     }
+
                     return;
                 }
+
                 setRoute(r);
+
                 setRouteError(null);
+
+                setCurrentStepIdx(0);
+
                 lastFetchRef.current = {
                     fromLat: userLocation.lat,
                     fromLng: userLocation.lng,
@@ -238,12 +421,25 @@ export default function MapView({ onEnd }) {
                 };
             })
             .catch((e) => {
-                if (e.name === "AbortError") return;
-                if (firstFetch) setRouteError(e.message || "Route error");
+                if (
+                    e?.name === "AbortError"
+                ) {
+                    return;
+                }
+
+                if (firstFetch) {
+                    setRouteError(
+                        e.message ??
+                        "Route error"
+                    );
+                }
             })
             .finally(() => {
-                if (firstFetch) setRouteLoading(false);
+                if (firstFetch) {
+                    setRouteLoading(false);
+                }
             });
+
         return () => ac.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -255,97 +451,232 @@ export default function MapView({ onEnd }) {
         tokenAvailable,
     ]);
 
-    // Reset cached fetch state when destination changes (new session).
     useEffect(() => {
-        lastFetchRef.current = null;
-        setRoute(null);
-        setRouteError(null);
-    }, [destination?.lat, destination?.lng]);
+        if (
+            !navStarted ||
+            !route?.steps?.length ||
+            !userLocation
+        ) {
+            return;
+        }
 
-    // Draw route line.
+        const steps = route.steps;
+
+        if (
+            currentStepIdx >=
+            steps.length - 1
+        ) {
+            return;
+        }
+
+        const step =
+            steps[currentStepIdx];
+
+        const maneuver =
+            step?.maneuver?.location;
+
+        if (!maneuver) return;
+
+        const dist = haversineMeters(
+            userLocation,
+            {
+                lat: maneuver[1],
+                lng: maneuver[0],
+            }
+        );
+
+        if (
+            dist <= STEP_ADVANCE_METERS
+        ) {
+            setCurrentStepIdx((i) =>
+                Math.min(
+                    i + 1,
+                    steps.length - 1
+                )
+            );
+        }
+    }, [
+        userLocation,
+        navStarted,
+        route,
+        currentStepIdx,
+    ]);
+
     useEffect(() => {
         const map = mapRef.current;
+
         if (!map || !mapReady) return;
+
         const SRC = "tg-route";
         const LINE = "tg-route-line";
+        const CASING = "tg-route-casing";
         const GLOW = "tg-route-glow";
+
         try {
-            if (route && route.geometry) {
+            if (route?.geometry) {
+                const rawCoords = route.geometry.coordinates;
+                const coords = userLocation
+                    ? [[userLocation.lng, userLocation.lat], ...rawCoords]
+                    : rawCoords;
+
                 const data = {
                     type: "Feature",
                     properties: {},
-                    geometry: route.geometry,
+                    geometry: {
+                        type: "LineString",
+                        coordinates: coords,
+                    },
                 };
+
                 if (map.getSource(SRC)) {
                     map.getSource(SRC).setData(data);
+
+                    if (map.getLayer(GLOW)) {
+                        map.setPaintProperty(GLOW, "line-color", accentColor);
+                    }
+                    if (map.getLayer(LINE)) {
+                        map.setPaintProperty(LINE, "line-color", accentColor);
+                    }
                 } else {
-                    map.addSource(SRC, { type: "geojson", data });
+                    map.addSource(SRC, {
+                        type: "geojson",
+                        data,
+                    });
+
+                    // 1. Soft accent glow
                     map.addLayer({
                         id: GLOW,
                         type: "line",
                         source: SRC,
-                        layout: { "line-cap": "round", "line-join": "round" },
+                        layout: {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
                         paint: {
-                            "line-color":
-                                selectedCategory?.accent || "#10B981",
-                            "line-width": 10,
-                            "line-opacity": 0.18,
-                            "line-blur": 6,
+                            "line-color": accentColor,
+                            "line-width": 6,
+                            "line-opacity": 0.25,
+                            "line-blur": 3,
                         },
                     });
+
+                    // 2. High-contrast dark outline casing
+                    map.addLayer({
+                        id: CASING,
+                        type: "line",
+                        source: SRC,
+                        layout: {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
+                        paint: {
+                            "line-color": "#08080A",
+                            "line-width": 7,
+                            "line-opacity": 0.85,
+                        },
+                    });
+
+                    // 3. Main colored line on top
                     map.addLayer({
                         id: LINE,
                         type: "line",
                         source: SRC,
-                        layout: { "line-cap": "round", "line-join": "round" },
+                        layout: {
+                            "line-cap": "round",
+                            "line-join": "round",
+                        },
                         paint: {
-                            "line-color":
-                                selectedCategory?.accent || "#10B981",
-                            "line-width": 4,
+                            "line-color": accentColor,
+                            "line-width": 3.5,
                             "line-opacity": 0.95,
                         },
                     });
                 }
             } else if (map.getSource(SRC)) {
                 if (map.getLayer(LINE)) map.removeLayer(LINE);
+                if (map.getLayer(CASING)) map.removeLayer(CASING);
                 if (map.getLayer(GLOW)) map.removeLayer(GLOW);
                 map.removeSource(SRC);
             }
-        } catch (e) {
-            /* ignore */
-        }
-    }, [route, mapReady, selectedCategory]);
+        } catch { }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [route, mapReady, accentColor, userLocation?.lng, userLocation?.lat]);
 
-    // Camera behavior: in preview (not started) fit bounds; in active follow user.
     useEffect(() => {
         const map = mapRef.current;
-        if (!map || !mapReady) return;
-        if (!userLocation || !destination) return;
+
+        if (
+            !map ||
+            !mapReady ||
+            !userLocation ||
+            !destination
+        ) {
+            return;
+        }
+
         if (!navStarted) {
-            if (route && route.geometry) {
-                const coords = route.geometry.coordinates;
-                const lngs = coords.map((c) => c[0]);
-                const lats = coords.map((c) => c[1]);
+            if (route?.geometry) {
+                const coords =
+                    route.geometry
+                        .coordinates;
+
+                const lngs =
+                    coords.map((c) => c[0]);
+
+                const lats =
+                    coords.map((c) => c[1]);
+
                 map.fitBounds(
                     [
-                        [Math.min(...lngs), Math.min(...lats)],
-                        [Math.max(...lngs), Math.max(...lats)],
+                        [
+                            Math.min(
+                                ...lngs
+                            ),
+                            Math.min(
+                                ...lats
+                            ),
+                        ],
+                        [
+                            Math.max(
+                                ...lngs
+                            ),
+                            Math.max(
+                                ...lats
+                            ),
+                        ],
                     ],
-                    { padding: 90, duration: 700, maxZoom: 16 },
+                    {
+                        padding: {
+                            top: 90,
+                            bottom: 330,
+                            left: 60,
+                            right: 60,
+                        },
+                        duration: 700,
+                        maxZoom: 16,
+                    }
                 );
             } else {
                 map.easeTo({
-                    center: [userLocation.lng, userLocation.lat],
+                    center: [
+                        userLocation.lng,
+                        userLocation.lat,
+                    ],
                     zoom: 14,
                     duration: 600,
                 });
             }
         } else {
             map.easeTo({
-                center: [userLocation.lng, userLocation.lat],
+                center: [
+                    userLocation.lng,
+                    userLocation.lat,
+                ],
                 zoom: 17,
                 pitch: 55,
-                bearing: userLocation.heading || 0,
+                bearing:
+                    userLocation.heading ??
+                    0,
                 duration: 500,
             });
         }
@@ -360,90 +691,136 @@ export default function MapView({ onEnd }) {
         mapReady,
     ]);
 
-    // Live distance + ETA. We base the display on the most recent route the
-    // engine returned, then subtract the haversine progress between where the
-    // route was fetched and where the user is right now. This gives a smooth,
-    // monotonic countdown without a refetch on every GPS tick.
-    const { distance, duration } = useMemo(() => {
-        if (!route)
-            return { distance: null, duration: null };
-        const last = lastFetchRef.current;
-        if (!last || !userLocation) {
-            return { distance: route.distance, duration: route.duration };
-        }
-        const moved = haversineMeters(userLocation, {
-            lat: last.fromLat,
-            lng: last.fromLng,
-        });
-        const remainingDist = Math.max(0, route.distance - moved);
-        // Maintain the same average pace from the original route.
-        const pace =
-            route.distance > 0 ? route.duration / route.distance : 0;
-        let remainingDur = pace > 0 ? remainingDist * pace : route.duration;
-        if (!Number.isFinite(remainingDur) || remainingDur < 0) {
-            remainingDur = etaSecondsFromDistance(
-                remainingDist,
-                travelMode,
-                userLocation.speed || 0,
-            );
-        }
-        return { distance: remainingDist, duration: remainingDur };
-    }, [route, userLocation, travelMode]);
+    const { distance, duration } =
+        useMemo(() => {
+            if (!route) {
+                return {
+                    distance: null,
+                    duration: null,
+                };
+            }
+
+            const last =
+                lastFetchRef.current;
+
+            if (
+                !last ||
+                !userLocation
+            ) {
+                return {
+                    distance:
+                        route.distance,
+                    duration:
+                        route.duration,
+                };
+            }
+
+            const moved =
+                haversineMeters(
+                    userLocation,
+                    {
+                        lat: last.fromLat,
+                        lng: last.fromLng,
+                    }
+                );
+
+            const remainingDist =
+                Math.max(
+                    0,
+                    route.distance -
+                    moved
+                );
+
+            const pace =
+                route.distance > 0
+                    ? route.duration /
+                    route.distance
+                    : 0;
+
+            let remainingDur =
+                pace > 0
+                    ? remainingDist *
+                    pace
+                    : route.duration;
+
+            if (
+                !Number.isFinite(
+                    remainingDur
+                ) ||
+                remainingDur < 0
+            ) {
+                remainingDur =
+                    etaSecondsFromDistance(
+                        remainingDist,
+                        travelMode,
+                        userLocation.speed ??
+                        0
+                    );
+            }
+
+            return {
+                distance:
+                    remainingDist,
+                duration:
+                    remainingDur,
+            };
+        }, [
+            route,
+            userLocation,
+            travelMode,
+        ]);
 
     const nextStep = useMemo(() => {
-        if (!route || !route.steps || !route.steps.length) return null;
-        return route.steps[0];
-    }, [route]);
+        if (!route?.steps?.length) {
+            return null;
+        }
+
+        return (
+            route.steps[
+            currentStepIdx
+            ] ?? null
+        );
+    }, [route, currentStepIdx]);
+
+    const handleEnd = useCallback(() => {
+        haptics.soft();
+
+        update({
+            navStarted: false,
+        });
+
+        onEnd?.();
+    }, [update, onEnd]);
+
+    const handleCancel =
+        useCallback(() => {
+            haptics.tap();
+
+            update({
+                navStarted: false,
+            });
+
+            onEnd?.();
+        }, [update, onEnd]);
 
     if (!tokenAvailable) {
         return (
-            <div
-                data-testid="map-token-missing"
-                className="relative flex h-[100dvh] flex-col items-center justify-center px-8 pb-32 text-center tg-no-select"
-            >
-                <div className="tg-ambient" />
-                <div className="rounded-3xl p-8 tg-glass-strong max-w-sm">
-                    <Navigation2
-                        size={28}
-                        className="mx-auto mb-4 text-emerald-300"
-                    />
-                    <div className="text-base font-bold text-white">
-                        Map needs a Mapbox token
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-white/55">
-                        Add{" "}
-                        <code className="rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-emerald-300">
-                            REACT_APP_MAPBOX_API_KEY
-                        </code>{" "}
-                        to enable the map. The Compass tab works without it.
-                    </p>
-                </div>
+            <div className="flex h-screen items-center justify-center bg-black text-white">
+                Missing Mapbox token
             </div>
         );
     }
 
     return (
-        <div
-            data-testid="map-view"
-            className="relative h-[100dvh] w-full overflow-hidden tg-no-select"
-        >
+        <div className="relative h-[100dvh] w-full overflow-hidden">
             <div
                 ref={containerRef}
                 className="absolute inset-0 h-full w-full"
                 style={{ background: "#08080A" }}
             />
-            {/* Subtle vignette only — keeps the map mostly visible. */}
-            <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                    background:
-                        "radial-gradient(120% 80% at 50% 50%, transparent 50%, rgba(8,8,10,0.55) 100%)",
-                }}
-            />
 
-            {/* Destination pill on map — sits above bottom card */}
-            <div className="absolute left-0 right-0 top-0 z-20 flex justify-center pt-safe">
-                <div className="pt-3">
+            {!navStarted && (
+                <div className="absolute left-0 right-0 top-0 z-20 flex justify-center pt-4">
                     <DestinationPill
                         category={selectedCategory}
                         destination={destination}
@@ -452,78 +829,95 @@ export default function MapView({ onEnd }) {
                         anchor="top"
                     />
                 </div>
-            </div>
+            )}
 
-            {/* Turn-by-turn (active nav) */}
             <AnimatePresence>
-                {navStarted && nextStep && (
-                    <motion.div
-                        key="ttb"
-                        initial={{ opacity: 0, y: -16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -16 }}
-                        transition={{ type: "spring", stiffness: 320, damping: 28 }}
-                        className="absolute left-4 right-4 top-16 z-30 rounded-2xl p-4 tg-glass-strong"
-                        data-testid="turn-by-turn"
-                    >
-                        <div className="flex items-start gap-3">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
-                                <Navigation2 size={16} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <div className="truncate text-[13px] font-semibold text-white">
-                                    {nextStep.maneuver?.instruction ||
-                                        "Continue"}
+                {navStarted &&
+                    nextStep && (
+                        <motion.div
+                            key="ttb"
+                            initial={{
+                                opacity: 0,
+                                y: -16,
+                            }}
+                            animate={{
+                                opacity: 1,
+                                y: 0,
+                            }}
+                            exit={{
+                                opacity: 0,
+                                y: -16,
+                            }}
+                            className="absolute left-4 right-4 z-30 rounded-2xl bg-black/65 border border-white/10 p-4 backdrop-blur-xl shadow-2xl"
+                            style={{
+                                top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                            }}
+                        >
+                            <div className="flex gap-3 items-center">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+                                    <Navigation2
+                                        size={16}
+                                        style={{ transform: "rotate(45deg)" }}
+                                    />
                                 </div>
-                                <div className="mt-0.5 text-[11px] text-white/45">
-                                    {formatDistance(
-                                        nextStep.distance,
-                                        units,
-                                    )}
+
+                                <div>
+                                    <div className="text-xs font-semibold text-white leading-tight">
+                                        {nextStep
+                                            .maneuver
+                                            ?.instruction ??
+                                            "Continue"}
+                                    </div>
+
+                                    <div className="mt-0.5 text-[10px] text-white/60">
+                                        {formatDistance(
+                                            nextStep.distance,
+                                            units
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                )}
+                        </motion.div>
+                    )}
             </AnimatePresence>
 
             {/* Bottom info card */}
             <div
                 className="absolute inset-x-4 z-30"
                 style={{
-                    bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)",
+                    bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
                 }}
             >
                 <motion.div
                     initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 280, damping: 28 }}
-                    className="rounded-3xl p-5 tg-glass-strong"
+                    className="rounded-[22px] p-4 tg-glass-strong"
                     data-testid="map-info-card"
                 >
                     <div className="flex items-baseline justify-between">
                         <div>
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                            <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
                                 {selectedCategory?.label || ""}
                             </div>
                             <div
                                 data-testid="map-route-distance"
-                                className="mt-1 text-2xl font-black tracking-tight text-white"
+                                className="mt-0.5 text-xl font-black tracking-tight text-white"
                             >
                                 {routeLoading
                                     ? "Calculating…"
                                     : routeError
-                                      ? "Route unavailable"
-                                      : formatDistance(distance, units)}
+                                        ? "Route unavailable"
+                                        : formatDistance(distance, units)}
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                            <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
                                 ETA
                             </div>
                             <div
                                 data-testid="map-route-eta"
-                                className="mt-1 text-2xl font-black tracking-tight text-white"
+                                className="mt-0.5 text-xl font-black tracking-tight text-white"
                             >
                                 {formatDuration(duration)}
                             </div>
@@ -531,7 +925,7 @@ export default function MapView({ onEnd }) {
                     </div>
 
                     {!navStarted && (
-                        <div className="mt-4 flex gap-1.5 rounded-2xl bg-white/[0.04] p-1">
+                        <div className="mt-3 flex gap-1.5 rounded-xl bg-white/[0.04] p-1">
                             {PROFILES.map(({ key, label, Icon }) => {
                                 const active = travelMode === key;
                                 return (
@@ -542,13 +936,12 @@ export default function MapView({ onEnd }) {
                                             haptics.tap();
                                             setTravelMode(key);
                                         }}
-                                        className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold transition-colors ${
-                                            active
+                                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${active
                                                 ? "bg-white/10 text-white ring-1 ring-white/10"
                                                 : "text-white/45"
-                                        }`}
+                                            }`}
                                     >
-                                        <Icon size={14} strokeWidth={1.8} />
+                                        <Icon size={12} strokeWidth={1.8} />
                                         {label}
                                     </button>
                                 );
@@ -556,7 +949,7 @@ export default function MapView({ onEnd }) {
                         </div>
                     )}
 
-                    <div className="mt-4 flex gap-2">
+                    <div className="mt-3 flex gap-1.5">
                         {!navStarted ? (
                             <button
                                 data-testid="start-navigation"
@@ -565,34 +958,28 @@ export default function MapView({ onEnd }) {
                                     haptics.success();
                                     update({ navStarted: true });
                                 }}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-emerald-500/90 px-4 py-3 text-sm font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-500/90 px-4 py-2.5 text-[13px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
                             >
-                                <Play size={14} strokeWidth={2.4} />
+                                <Play size={12} strokeWidth={2.4} />
                                 Start
                             </button>
                         ) : (
                             <button
                                 data-testid="end-navigation"
-                                onClick={() => {
-                                    haptics.soft();
-                                    onEnd?.();
-                                }}
-                                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-white/10 px-4 py-3 text-sm font-bold text-white ring-1 ring-white/10 active:scale-[0.98]"
+                                onClick={handleEnd}
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-bold text-white ring-1 ring-white/10 active:scale-[0.98]"
                             >
-                                <Square size={12} strokeWidth={2.4} />
+                                <Square size={10} strokeWidth={2.4} />
                                 End
                             </button>
                         )}
                         <button
                             data-testid="map-cancel"
-                            onClick={() => {
-                                haptics.tap();
-                                onEnd?.();
-                            }}
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
+                            onClick={handleCancel}
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
                             aria-label="Cancel"
                         >
-                            <X size={14} strokeWidth={1.8} />
+                            <X size={12} strokeWidth={1.8} />
                         </button>
                     </div>
                 </motion.div>

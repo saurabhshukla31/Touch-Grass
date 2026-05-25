@@ -32,6 +32,7 @@ const initial = {
 export function AppProvider({ children }) {
     const [state, setState] = useState(initial);
     const watchIdRef = useRef(null);
+    const lastVectorRef = useRef({ cos: 0, sin: 0, initialized: false });
 
     const update = useCallback((patch) => {
         setState((s) => ({ ...s, ...patch }));
@@ -185,20 +186,46 @@ export function AppProvider({ children }) {
             }
             if (orientHandlerRef.current) return true;
             const handler = (e) => {
-                // webkitCompassHeading is provided on iOS and is already true-north
-                // calibrated (0 = North, increasing clockwise).
                 let h = null;
+                // Priority 1: iOS true-north calibrated compass
                 if (typeof e.webkitCompassHeading === "number") {
                     h = e.webkitCompassHeading;
-                } else if (typeof e.alpha === "number") {
-                    h = 360 - e.alpha;
+                } else if (e.alpha !== null && typeof e.alpha === "number") {
+                    // Priority 2: Android alpha (deviceorientationabsolute gives true-north)
+                    h = (360 - e.alpha + 360) % 360;
                 }
-                if (h != null) {
-                    setState((s) => ({ ...s, heading: ((h % 360) + 360) % 360 }));
+
+                if (h === null || isNaN(h)) return;
+
+                // Circular angular low-pass filter on unit vector
+                const rad = (h * Math.PI) / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                if (!lastVectorRef.current.initialized) {
+                    lastVectorRef.current.cos = cos;
+                    lastVectorRef.current.sin = sin;
+                    lastVectorRef.current.initialized = true;
+                } else {
+                    const k = 0.8; // Smoothing factor (0.8 = smooth, 0.2 = fast/raw)
+                    lastVectorRef.current.cos = lastVectorRef.current.cos * k + cos * (1 - k);
+                    lastVectorRef.current.sin = lastVectorRef.current.sin * k + sin * (1 - k);
                 }
+
+                const smoothedRad = Math.atan2(lastVectorRef.current.sin, lastVectorRef.current.cos);
+                const smoothedDeg = (smoothedRad * 180) / Math.PI;
+                const normalizedHeading = (smoothedDeg + 360) % 360;
+
+                setState((s) => ({ ...s, heading: normalizedHeading }));
             };
-            window.addEventListener("deviceorientationabsolute", handler, true);
-            window.addEventListener("deviceorientation", handler, true);
+
+            // Use absolute device orientation if supported on Android to get actual true-north
+            if ("ondeviceorientationabsolute" in window) {
+                window.addEventListener("deviceorientationabsolute", handler, true);
+            } else {
+                window.addEventListener("deviceorientation", handler, true);
+            }
+
             orientHandlerRef.current = handler;
             return true;
         } catch (e) {

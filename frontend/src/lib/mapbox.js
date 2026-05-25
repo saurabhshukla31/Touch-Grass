@@ -81,8 +81,15 @@ export async function fetchRoute({
     signal,
 }) {
     if (!hasMapboxToken()) throw new Error("Mapbox token missing");
+
+    // Map internal travel mode key to Mapbox Directions v5 profile ID
+    let mapboxProfile = profile;
+    if (profile === "driving") {
+        mapboxProfile = "driving-traffic";
+    }
+
     const coords = `${from.lng},${from.lat};${to.lng},${to.lat}`;
-    const url = new URL(`${DIRECTIONS_BASE}/${profile}/${coords}`);
+    const url = new URL(`${DIRECTIONS_BASE}/${mapboxProfile}/${coords}`);
     url.searchParams.set("access_token", TOKEN);
     url.searchParams.set("geometries", "geojson");
     url.searchParams.set("steps", "true");

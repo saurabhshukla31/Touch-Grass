@@ -68,7 +68,19 @@ export default function CompassView({ onCancel }) {
     }, [distance]);
 
     // Needle rotation: bearing relative to device heading.
-    const deviceHeading = heading || 0;
+    const deviceHeading = useMemo(() => {
+        // Prioritize GPS movement heading if walking/driving (speed > 0.8 m/s ≈ 3 km/h)
+        if (
+            userLocation &&
+            userLocation.speed !== null &&
+            userLocation.speed > 0.8 &&
+            userLocation.heading !== null
+        ) {
+            return userLocation.heading;
+        }
+        return heading ?? 0;
+    }, [userLocation, heading]);
+
     const needleRotation =
         bearing != null ? ((bearing - deviceHeading + 540) % 360) - 180 : 0;
     const ringRotation = -deviceHeading;
