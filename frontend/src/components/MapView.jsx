@@ -6,7 +6,11 @@ import React, {
     useState,
 } from "react";
 import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+
+// FIX: Force Webpack to use the pre-compiled, minification-safe Mapbox worker.
+// This prevents Vercel's build process from scrambling the WebGL rendering engine.
+mapboxgl.workerClass = require("mapbox-gl/dist/mapbox-gl-csp-worker").default;
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Footprints,
