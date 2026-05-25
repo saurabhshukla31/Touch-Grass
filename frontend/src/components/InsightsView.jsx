@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { listSessions, listPhotos, clearAllData } from "@/lib/db";
 import { formatDistance } from "@/lib/geo";
 import { useApp } from "@/lib/AppState";
@@ -47,7 +46,6 @@ export default function InsightsView() {
         try {
             await clearAllData();
             haptics.success();
-            toast.success("All data cleared.");
             setSessions([]);
             setPhotos([]);
         } finally {

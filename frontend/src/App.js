@@ -194,6 +194,7 @@ function Shell() {
       haptics.success();
       update({
         mode: "active",
+        userLocation: loc,
         selectedCategory: usedCat,
         destination: {
           ...found,
@@ -249,7 +250,6 @@ function Shell() {
       return;
     }
     resetSession();
-    toast.success("Session saved.");
   };
 
   const sessionActive = mode === "active";
@@ -323,8 +323,8 @@ function Shell() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {/* Only render TabBar if a session is actively running or if we are not on the start screen (home mapping view) */}
-        {sessionActive && (
+        {/* Show TabBar when session is active, or when viewing insights/settings */}
+        {(sessionActive || tab === "insights" || tab === "settings") && (
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
@@ -357,12 +357,10 @@ function Shell() {
             onComplete={() => {
               setShowVerification(false);
               resetSession();
-              toast.success("Session saved.");
             }}
             onSkip={() => {
               setShowVerification(false);
               resetSession();
-              toast.success("Session saved.");
             }}
           />
         )}

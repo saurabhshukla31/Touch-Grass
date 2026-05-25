@@ -1,12 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Compass, Map as MapIcon, Sparkles, Settings } from "lucide-react";
+import { Compass, Map as MapIcon, ChartNoAxesCombined, Settings } from "lucide-react";
 import { haptics } from "@/lib/haptics";
 
 const TABS = [
     { key: "compass", label: "Compass", Icon: Compass },
     { key: "map", label: "Map", Icon: MapIcon },
-    { key: "insights", label: "Stats", Icon: Sparkles },
+    { key: "insights", label: "Stats", Icon: ChartNoAxesCombined },
     { key: "settings", label: "Settings", Icon: Settings },
 ];
 

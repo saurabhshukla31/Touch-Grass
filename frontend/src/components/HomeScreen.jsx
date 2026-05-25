@@ -17,9 +17,9 @@ function HeroCard({ category, onSelect }) {
             whileTap={{ scale: 0.97 }}
             transition={cardSpring}
             className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select"
-            style={{ 
-                border: `1px solid ${category.accent}4C`, 
-                boxShadow: `0 0 15px ${category.glow || category.accent}66, inset 0 0 10px ${category.glow || category.accent}4D` 
+            style={{
+                border: `1px solid ${category.accent}4C`,
+                boxShadow: `0 0 15px ${category.glow || category.accent}66, inset 0 0 10px ${category.glow || category.accent}4D`
             }}
         >
             <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 8px ${category.glow || category.accent}66)` }}>
@@ -78,15 +78,15 @@ export default function HomeScreen({ onSelectCategory }) {
                 </div>
                 <h1
                     data-testid="home-heading"
-                    className="mt-2 text-[30px] font-black leading-[1.05] tracking-tight text-white"
+                    className="mt-2 text-[36px] font-black leading-[1.05] tracking-tight text-white"
                 >
                     Where would you<br />like to go?
                 </h1>
             </motion.header>
 
             <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 32 }}
+                animate={{ opacity: 1, y: 20 }}
                 transition={{
                     duration: 0.7,
                     delay: 0.08,

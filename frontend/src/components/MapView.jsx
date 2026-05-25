@@ -60,6 +60,9 @@ export default function MapView({ onEnd }) {
         navStarted,
         update,
         units,
+        heading,
+        mapViewMode,
+        navViewMode,
     } = useApp();
 
     const containerRef = useRef(null);
@@ -74,10 +77,29 @@ export default function MapView({ onEnd }) {
     const [routeLoading, setRouteLoading] = useState(false);
     const [routeError, setRouteError] = useState(null);
     const [mapReady, setMapReady] = useState(false);
+    const [trackingMode, setTrackingMode] = useState(true);
 
     const [currentStepIdx, setCurrentStepIdx] = useState(0);
 
     const tokenAvailable = hasMapboxToken();
+
+    const deviceHeading = useMemo(() => {
+        if (
+            userLocation &&
+            userLocation.speed !== null &&
+            userLocation.speed > 0.8 &&
+            userLocation.heading !== null
+        ) {
+            return userLocation.heading;
+        }
+        return heading ?? 0;
+    }, [userLocation, heading]);
+
+    useEffect(() => {
+        if (navStarted) {
+            setTrackingMode(true);
+        }
+    }, [navStarted]);
 
     const accentColor =
         selectedCategory?.accent ?? "#10B981";
@@ -112,6 +134,7 @@ export default function MapView({ onEnd }) {
                 style: MAP_STYLE,
                 center: [start.lng, start.lat],
                 zoom: 15,
+                pitch: mapViewMode === "3d" ? 60 : 0,
                 attributionControl: false,
                 logoPosition: "bottom-left",
                 pitchWithRotate: false,
@@ -217,6 +240,10 @@ export default function MapView({ onEnd }) {
 
             mapRef.current = mapInstance;
 
+            mapInstance.on("dragstart", () => setTrackingMode(false));
+            mapInstance.on("touchstart", () => setTrackingMode(false));
+            mapInstance.on("wheel", () => setTrackingMode(false));
+
             resizeObserver = new ResizeObserver(() => {
                 try {
                     mapInstance?.resize();
@@ -259,8 +286,8 @@ export default function MapView({ onEnd }) {
             return;
         }
 
-        const heading = userLocation.heading ?? 0;
-        const hasHeading = userLocation.heading !== null && userLocation.heading !== undefined;
+        const beamHeading = deviceHeading;
+        const hasHeading = true;
 
         if (!userMarkerRef.current) {
             const wrap = document.createElement("div");
@@ -272,7 +299,7 @@ export default function MapView({ onEnd }) {
 
             const beam = document.createElement("div");
             beam.className = "tg-heading-beam";
-            beam.style.cssText = `position:absolute;inset:-24px;display:flex;align-items:center;justify-content:center;z-index:1;transform:rotate(${heading}deg);transition:transform 0.25s ease-out;opacity:${hasHeading ? 1 : 0};`;
+            beam.style.cssText = `position:absolute;inset:-24px;display:flex;align-items:center;justify-content:center;z-index:1;transform:rotate(${beamHeading}deg);transition:transform 0.25s ease-out;opacity:${hasHeading ? 1 : 0};`;
             beam.innerHTML = `
                 <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
                     <path d="M36 36 L20 4 A24 24 0 0 1 52 4 Z" fill="url(#beam-gradient)" opacity="0.4" />
@@ -309,7 +336,7 @@ export default function MapView({ onEnd }) {
             const wrap = marker.getElement();
             const beam = wrap.querySelector(".tg-heading-beam");
             if (beam) {
-                beam.style.transform = `rotate(${heading}deg)`;
+                beam.style.transform = `rotate(${beamHeading}deg)`;
                 beam.style.opacity = hasHeading ? "1" : "0";
             }
         }
@@ -662,38 +689,19 @@ export default function MapView({ onEnd }) {
 
     useEffect(() => {
         const map = mapRef.current;
-
-        if (
-            !map ||
-            !mapReady ||
-            !userLocation ||
-            !destination
-        ) {
-            return;
-        }
+        if (!map || !mapReady) return;
 
         if (!navStarted) {
-            if (route?.geometry) {
-                const coords =
-                    route.geometry
-                        .coordinates;
-
-                const lngs =
-                    coords.map((c) => c[0]);
-
-                const lats =
-                    coords.map((c) => c[1]);
+            // Not navigating: show overview or current location
+            if (route?.geometry && destination && userLocation) {
+                const coords = route.geometry.coordinates;
+                const lngs = coords.map((c) => c[0]);
+                const lats = coords.map((c) => c[1]);
 
                 map.fitBounds(
                     [
-                        [
-                            Math.min(...lngs),
-                            Math.min(...lats),
-                        ],
-                        [
-                            Math.max(...lngs),
-                            Math.max(...lats),
-                        ],
+                        [Math.min(...lngs), Math.min(...lats)],
+                        [Math.max(...lngs), Math.max(...lats)],
                     ],
                     {
                         padding: {
@@ -702,44 +710,42 @@ export default function MapView({ onEnd }) {
                             left: 60,
                             right: 60,
                         },
+                        pitch: mapViewMode === "3d" ? 60 : 0,
+                        bearing: 0,
                         duration: 700,
                         maxZoom: 16,
                     }
                 );
-            } else {
+            } else if (userLocation) {
                 map.easeTo({
-                    center: [
-                        userLocation.lng,
-                        userLocation.lat,
-                    ],
+                    center: [userLocation.lng, userLocation.lat],
                     zoom: 14,
+                    pitch: mapViewMode === "3d" ? 60 : 0,
+                    bearing: 0,
                     duration: 600,
                 });
             }
-        } else {
-            map.easeTo({
-                center: [
-                    userLocation.lng,
-                    userLocation.lat,
-                ],
-                zoom: 17,
-                pitch: 55,
-                bearing:
-                    userLocation.heading ??
-                    0,
-                duration: 500,
-            });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        navStarted,
-        route,
-        userLocation?.lat,
-        userLocation?.lng,
-        destination?.lat,
-        destination?.lng,
-        mapReady,
-    ]);
+    }, [navStarted, route, mapReady, !!userLocation, mapViewMode]); // Omit full userLocation to avoid jumping bounds continuously
+
+    // Continuous tracking loop during navigation
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !mapReady || !navStarted || !trackingMode || !userLocation) return;
+        
+        const targetZoom = travelMode === "driving" ? 16 : 18.5;
+        
+        map.easeTo({
+            center: [userLocation.lng, userLocation.lat],
+            bearing: deviceHeading,
+            zoom: targetZoom,
+            pitch: navViewMode === "3d" ? 60 : 0,
+            padding: { top: 0, bottom: 250, left: 0, right: 0 },
+            duration: 1000,
+            easing: (t) => t // linear easing for smooth continuous tracking
+        });
+    }, [userLocation, deviceHeading, navStarted, trackingMode, mapReady, travelMode, navViewMode]);
 
     const { distance, duration } =
         useMemo(() => {
@@ -833,14 +839,9 @@ export default function MapView({ onEnd }) {
     }, [route, currentStepIdx]);
 
     const handleEnd = useCallback(() => {
-        haptics.soft();
-
-        update({
-            navStarted: false,
-        });
-
-        onEnd?.();
-    }, [update, onEnd]);
+        haptics.tap();
+        update({ navStarted: false });
+    }, [update]);
 
     const handleCancel =
         useCallback(() => {
@@ -858,14 +859,18 @@ export default function MapView({ onEnd }) {
         if (!map || !mapReady || !userLocation) return;
         
         haptics.tap();
+        setTrackingMode(true);
+        
+        const targetZoom = travelMode === "driving" ? 16 : 18.5;
         map.easeTo({
             center: [userLocation.lng, userLocation.lat],
-            zoom: 17,
-            pitch: 55,
-            bearing: userLocation.heading ?? 0,
+            zoom: targetZoom,
+            pitch: navViewMode === "3d" ? 60 : 0,
+            bearing: deviceHeading,
+            padding: { top: 0, bottom: 250, left: 0, right: 0 },
             duration: 500,
         });
-    }, [userLocation, mapReady]);
+    }, [userLocation, mapReady, deviceHeading, travelMode, navViewMode]);
 
     if (!tokenAvailable) {
         return (
@@ -949,25 +954,6 @@ export default function MapView({ onEnd }) {
                     )}
             </AnimatePresence>
 
-            {/* Recenter button (shown only during navigation) */}
-            <AnimatePresence>
-                {navStarted && (
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={handleRecenter}
-                        className="absolute right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/20 backdrop-blur-md tg-glass"
-                        style={{
-                            bottom: "calc(env(safe-area-inset-bottom, 0px) + 250px)",
-                        }}
-                    >
-                        <LocateFixed size={20} strokeWidth={1.8} />
-                    </motion.button>
-                )}
-            </AnimatePresence>
-
             {/* Bottom info card */}
             <div
                 className="absolute inset-x-4 z-30"
@@ -1036,7 +1022,7 @@ export default function MapView({ onEnd }) {
                         </div>
                     )}
 
-                    <div className="mt-3 flex gap-1.5">
+                    <div className="mt-3 flex gap-2.5">
                         {!navStarted ? (
                             <button
                                 data-testid="start-navigation"
@@ -1060,10 +1046,20 @@ export default function MapView({ onEnd }) {
                                 End
                             </button>
                         )}
+                        {navStarted && (
+                            <button
+                                data-testid="map-recenter"
+                                onClick={handleRecenter}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 active:scale-95"
+                                aria-label="Recenter"
+                            >
+                                <LocateFixed size={14} strokeWidth={2} />
+                            </button>
+                        )}
                         <button
                             data-testid="map-cancel"
                             onClick={handleCancel}
-                            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
                             aria-label="Cancel"
                         >
                             <X size={12} strokeWidth={1.8} />

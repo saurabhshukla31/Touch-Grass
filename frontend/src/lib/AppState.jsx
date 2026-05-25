@@ -23,6 +23,8 @@ const initial = {
     navStarted: false,
     units: "metric",
     hapticsEnabled: true,
+    mapViewMode: "2d",
+    navViewMode: "3d",
     locationPermission: "unknown", // 'unknown' | 'granted' | 'denied'
     orientationPermission: "unknown",
     heading: null, // device heading degrees (0-360), magnetometer
@@ -44,12 +46,14 @@ export function AppProvider({ children }) {
         (async () => {
             try {
                 const s = await getSettings();
-                setHapticsEnabled(!!s.hapticsEnabled);
+                setHapticsEnabled(true);
                 setState((prev) => ({
                     ...prev,
                     units: s.units,
                     travelMode: s.defaultTravelMode,
-                    hapticsEnabled: !!s.hapticsEnabled,
+                    hapticsEnabled: true,
+                    mapViewMode: s.mapViewMode || "2d",
+                    navViewMode: s.navViewMode || "3d",
                 }));
             } catch {
                 /* ignore */
@@ -256,16 +260,8 @@ export function AppProvider({ children }) {
 
     // Automatically manage pillOpen timer when destination changes or tab switches
     useEffect(() => {
-        if (state.destination) {
-            setState((s) => ({ ...s, pillOpen: true }));
-            if (pillTimerRef.current) {
-                clearTimeout(pillTimerRef.current);
-            }
-            pillTimerRef.current = setTimeout(() => {
-                setState((s) => ({ ...s, pillOpen: false }));
-                pillTimerRef.current = null;
-            }, 3000);
-        } else {
+        // Never auto-open — user must click to expand
+        if (!state.destination) {
             setState((s) => ({ ...s, pillOpen: false }));
             if (pillTimerRef.current) {
                 clearTimeout(pillTimerRef.current);
@@ -317,11 +313,19 @@ export function AppProvider({ children }) {
         }
     }, []);
 
-    const setHaptics = useCallback(async (hapticsEnabled) => {
-        setHapticsEnabled(hapticsEnabled);
-        setState((s) => ({ ...s, hapticsEnabled }));
+    const setMapViewMode = useCallback(async (mapViewMode) => {
+        setState((s) => ({ ...s, mapViewMode }));
         try {
-            await persistSettings({ hapticsEnabled });
+            await persistSettings({ mapViewMode });
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    const setNavViewMode = useCallback(async (navViewMode) => {
+        setState((s) => ({ ...s, navViewMode }));
+        try {
+            await persistSettings({ navViewMode });
         } catch {
             /* ignore */
         }
@@ -335,7 +339,7 @@ export function AppProvider({ children }) {
             destination: null,
             navStarted: false,
             homeOverlay: null,
-            currentTab: "compass",
+            currentTab: "insights",
             pillOpen: false,
         }));
     }, []);
@@ -350,7 +354,8 @@ export function AppProvider({ children }) {
             requestOrientation,
             setUnits,
             setTravelMode,
-            setHaptics,
+            setMapViewMode,
+            setNavViewMode,
             resetSession,
             togglePill,
         }),
@@ -363,7 +368,8 @@ export function AppProvider({ children }) {
             requestOrientation,
             setUnits,
             setTravelMode,
-            setHaptics,
+            setMapViewMode,
+            setNavViewMode,
             resetSession,
             togglePill,
         ],

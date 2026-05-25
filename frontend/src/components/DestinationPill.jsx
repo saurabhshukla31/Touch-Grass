@@ -5,9 +5,6 @@ import { formatDistance } from "@/lib/geo";
 import { haptics } from "@/lib/haptics";
 import { useApp } from "@/lib/AppState";
 
-// Single button that toggles between collapsed (testid pill-collapsed) and
-// expanded (testid pill-expanded) state. Using a single element avoids the
-// AnimatePresence race that previously swallowed the second click.
 export default function DestinationPill({
     category,
     destination,

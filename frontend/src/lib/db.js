@@ -70,6 +70,8 @@ const DEFAULT_SETTINGS = {
     units: "metric",
     defaultTravelMode: "walking",
     hapticsEnabled: true,
+    mapViewMode: "2d",
+    navViewMode: "3d",
 };
 
 export async function getSettings() {

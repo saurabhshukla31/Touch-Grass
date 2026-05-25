@@ -1,20 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import { toast } from "sonner";
+import { Check, Footprints, Bike, Car, Map, Navigation, SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 
-function Segmented({ value, options, onChange, testIdPrefix }) {
+function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
     return (
-        <div
-            className="grid gap-1 rounded-2xl bg-white/[0.04] p-1 ring-1 ring-white/[0.04]"
-            style={{
-                gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
-            }}
-        >
+        <div className="flex w-full rounded-[18px] bg-black/20 p-1.5 ring-1 ring-white/5 backdrop-blur-md">
             {options.map((opt) => {
                 const active = value === opt.value;
+                const Icon = opt.icon;
                 return (
                     <button
                         key={opt.value}
@@ -23,13 +18,24 @@ function Segmented({ value, options, onChange, testIdPrefix }) {
                             haptics.tap();
                             onChange(opt.value);
                         }}
-                        className={`rounded-xl px-3 py-2.5 text-[12px] font-semibold transition-colors ${
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2.5 transition-all duration-300 ${
                             active
-                                ? "bg-white/10 text-white ring-1 ring-white/10"
-                                : "text-white/50"
+                                ? "bg-white/15 text-white ring-1 ring-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
+                                : "text-white/40 hover:text-white/60 hover:bg-white/[0.04]"
                         }`}
                     >
-                        {opt.label}
+                        {Icon && (
+                            <Icon 
+                                size={opt.label ? 14 : 18} 
+                                strokeWidth={active ? 2.5 : 2} 
+                                className={active ? "opacity-100" : "opacity-70"}
+                            />
+                        )}
+                        {opt.label && (
+                            <span className="text-[11px] font-bold uppercase tracking-wider">
+                                {opt.label}
+                            </span>
+                        )}
                     </button>
                 );
             })}
@@ -37,50 +43,15 @@ function Segmented({ value, options, onChange, testIdPrefix }) {
     );
 }
 
-function Row({ label, children, hint }) {
+function SettingItem({ label, icon: Icon, children }) {
     return (
-        <div className="rounded-3xl p-5 tg-glass">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
+        <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 ml-1">
+                {Icon && <Icon size={12} strokeWidth={2.5} />}
                 {label}
             </div>
-            <div className="mt-3">{children}</div>
-            {hint && (
-                <div className="mt-3 text-[11px] leading-relaxed text-white/40">
-                    {hint}
-                </div>
-            )}
+            {children}
         </div>
-    );
-}
-
-function Toggle({ value, onChange, testid }) {
-    return (
-        <button
-            data-testid={testid}
-            onClick={() => {
-                if (!value) haptics.select();
-                onChange(!value);
-            }}
-            aria-pressed={value}
-            className="relative flex h-8 w-14 items-center rounded-full ring-1 ring-white/10 transition-colors"
-            style={{
-                background: value
-                    ? "linear-gradient(180deg, rgba(16,185,129,0.85), rgba(16,185,129,0.65))"
-                    : "rgba(255,255,255,0.06)",
-                boxShadow: value
-                    ? "inset 0 1px 0 rgba(255,255,255,0.25), 0 0 16px -4px rgba(16,185,129,0.45)"
-                    : "inset 0 1px 0 rgba(255,255,255,0.06)",
-            }}
-        >
-            <motion.span
-                layout
-                transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                className="ml-1 h-6 w-6 rounded-full bg-white shadow-md"
-                style={{
-                    transform: value ? "translateX(24px)" : "translateX(0)",
-                }}
-            />
-        </button>
     );
 }
 
@@ -90,33 +61,37 @@ export default function SettingsView() {
         setUnits,
         travelMode,
         setTravelMode,
-        hapticsEnabled,
-        setHaptics,
+        mapViewMode,
+        setMapViewMode,
+        navViewMode,
+        setNavViewMode,
     } = useApp();
 
-    // Local draft so the Save button has something to commit.
     const [draftUnits, setDraftUnits] = useState(units);
     const [draftMode, setDraftMode] = useState(travelMode);
-    const [draftHaptics, setDraftHaptics] = useState(hapticsEnabled);
+    const [draftMapMode, setDraftMapMode] = useState(mapViewMode);
+    const [draftNavMode, setDraftNavMode] = useState(navViewMode);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => setDraftUnits(units), [units]);
     useEffect(() => setDraftMode(travelMode), [travelMode]);
-    useEffect(() => setDraftHaptics(hapticsEnabled), [hapticsEnabled]);
+    useEffect(() => setDraftMapMode(mapViewMode), [mapViewMode]);
+    useEffect(() => setDraftNavMode(navViewMode), [navViewMode]);
 
     const dirty =
         draftUnits !== units ||
         draftMode !== travelMode ||
-        draftHaptics !== hapticsEnabled;
+        draftMapMode !== mapViewMode ||
+        draftNavMode !== navViewMode;
 
     const onSave = async () => {
         setSaving(true);
         try {
             if (draftUnits !== units) await setUnits(draftUnits);
             if (draftMode !== travelMode) await setTravelMode(draftMode);
-            if (draftHaptics !== hapticsEnabled) await setHaptics(draftHaptics);
+            if (draftMapMode !== mapViewMode) await setMapViewMode(draftMapMode);
+            if (draftNavMode !== navViewMode) await setNavViewMode(draftNavMode);
             haptics.success();
-            toast.success("Settings saved.");
         } finally {
             setSaving(false);
         }
@@ -125,96 +100,98 @@ export default function SettingsView() {
     return (
         <div
             data-testid="settings-view"
-            className="relative min-h-[100dvh] w-full overflow-y-auto px-5 pt-safe pb-40 tg-no-select"
+            className="relative h-[100dvh] w-full overflow-hidden px-5 pt-safe flex flex-col tg-no-select pb-[110px]"
         >
             <div className="tg-ambient" />
+            
             <motion.header
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 pt-6 pb-6"
+                className="relative z-10 pt-8 pb-4 shrink-0 flex items-center gap-3"
             >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
-                    Settings
+                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20">
+                    <SlidersHorizontal size={20} className="text-white" />
                 </div>
-                <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
-                    Quiet preferences.
+                <h1 className="text-[28px] font-black tracking-tight text-white leading-none">
+                    Settings
                 </h1>
             </motion.header>
 
-            <div className="relative z-10 flex flex-col gap-3">
-                <Row label="Units">
-                    <Segmented
-                        testIdPrefix="units"
-                        value={draftUnits}
-                        onChange={setDraftUnits}
-                        options={[
-                            { value: "metric", label: "Metric" },
-                            { value: "imperial", label: "Imperial" },
-                        ]}
-                    />
-                </Row>
-
-                <Row label="Default travel mode">
-                    <Segmented
-                        testIdPrefix="travel"
-                        value={draftMode}
-                        onChange={setDraftMode}
-                        options={[
-                            { value: "walking", label: "Walk" },
-                            { value: "cycling", label: "Bike" },
-                            { value: "driving", label: "Drive" },
-                        ]}
-                    />
-                </Row>
-
-                <div className="rounded-3xl p-5 tg-glass">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                Haptics
-                            </div>
-                            <div className="mt-1.5 text-sm font-semibold text-white">
-                                {draftHaptics ? "On" : "Off"}
-                            </div>
-                            <div className="mt-1 text-[11px] leading-relaxed text-white/40">
-                                Subtle vibration on taps, arrivals, and route
-                                changes.
-                            </div>
-                        </div>
-                        <Toggle
-                            testid="haptics-toggle"
-                            value={draftHaptics}
-                            onChange={(val) => {
-                                if (val && typeof navigator !== 'undefined' && typeof navigator.vibrate !== 'function') {
-                                    toast.error("Haptics are not supported on this device/browser.");
-                                }
-                                setDraftHaptics(val);
-                            }}
+            <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative z-10 flex-1 flex flex-col justify-center min-h-0"
+            >
+                <div className="relative overflow-hidden rounded-[32px] p-6 bg-white/[0.03] shadow-2xl ring-1 ring-white/10 backdrop-blur-xl flex flex-col gap-6 before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/5 before:to-transparent before:pointer-events-none">
+                    <SettingItem label="Measurement System">
+                        <SegmentedIcon
+                            testIdPrefix="units"
+                            value={draftUnits}
+                            onChange={setDraftUnits}
+                            options={[
+                                { value: "metric", label: "Metric" },
+                                { value: "imperial", label: "Imperial" },
+                            ]}
                         />
+                    </SettingItem>
+
+                    <SettingItem label="Default Transport">
+                        <SegmentedIcon
+                            testIdPrefix="travel"
+                            value={draftMode}
+                            onChange={setDraftMode}
+                            options={[
+                                { value: "walking", icon: Footprints },
+                                { value: "cycling", icon: Bike },
+                                { value: "driving", icon: Car },
+                            ]}
+                        />
+                    </SettingItem>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <SettingItem label="Map View" icon={Map}>
+                            <SegmentedIcon
+                                testIdPrefix="mapview"
+                                value={draftMapMode}
+                                onChange={setDraftMapMode}
+                                options={[
+                                    { value: "2d", label: "2D" },
+                                    { value: "3d", label: "3D" },
+                                ]}
+                            />
+                        </SettingItem>
+
+                        <SettingItem label="Navigation" icon={Navigation}>
+                            <SegmentedIcon
+                                testIdPrefix="navview"
+                                value={draftNavMode}
+                                onChange={setDraftNavMode}
+                                options={[
+                                    { value: "2d", label: "2D" },
+                                    { value: "3d", label: "3D" },
+                                ]}
+                            />
+                        </SettingItem>
                     </div>
                 </div>
+            </motion.div>
 
-                <motion.button
-                    data-testid="settings-save"
-                    disabled={!dirty || saving}
-                    onClick={onSave}
-                    whileTap={{ scale: 0.98 }}
-                    className={`mt-2 flex h-14 items-center justify-center gap-2 rounded-full text-sm font-bold transition-opacity ${
-                        dirty && !saving
-                            ? "bg-emerald-500/90 text-black"
-                            : "bg-white/[0.06] text-white/35"
-                    }`}
-                    style={{
-                        boxShadow:
-                            dirty && !saving
-                                ? "0 16px 40px -12px rgba(16,185,129,0.55), inset 0 1px 0 rgba(255,255,255,0.25)"
-                                : "inset 0 1px 0 rgba(255,255,255,0.04)",
-                    }}
-                >
-                    <Check size={16} strokeWidth={2.4} />
-                    {saving ? "Saving…" : dirty ? "Save" : "Saved"}
-                </motion.button>
-            </div>
+            <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                data-testid="settings-save"
+                disabled={!dirty || saving}
+                onClick={onSave}
+                whileTap={{ scale: 0.98 }}
+                className={`mt-4 relative z-10 flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-2xl text-sm font-black tracking-wide transition-all duration-300 ${
+                    dirty && !saving
+                        ? "bg-emerald-500 text-black shadow-[0_8px_30px_-10px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400"
+                        : "bg-white/[0.04] text-white/30 ring-1 ring-white/5"
+                }`}
+            >
+                <Check size={18} strokeWidth={3} className={dirty ? "opacity-100" : "opacity-0 absolute"} />
+                {saving ? "SAVING..." : dirty ? "SAVE CHANGES" : "UP TO DATE"}
+            </motion.button>
         </div>
     );
 }
