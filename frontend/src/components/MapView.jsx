@@ -1135,9 +1135,9 @@ export default function MapView({ onEnd }) {
                             <button
                                 data-testid="end-navigation"
                                 onClick={handleEnd}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-[13px] font-bold text-white ring-1 ring-white/10 active:scale-[0.98]"
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 ring-1 ring-rose-500/20 active:scale-[0.98] transition-all hover:bg-rose-500/15"
                             >
-                                <Square size={10} strokeWidth={2.4} />
+                                <Square size={12} strokeWidth={2} fill="currentColor" />
                                 End
                             </button>
                         )}
