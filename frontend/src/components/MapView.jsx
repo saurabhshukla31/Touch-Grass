@@ -5,11 +5,10 @@ import React, {
     useRef,
     useState,
 } from "react";
-import mapboxgl from "mapbox-gl";
 
-// FIX: Force Webpack to use the pre-compiled, minification-safe Mapbox worker.
-// This prevents Vercel's build process from scrambling the WebGL rendering engine.
-mapboxgl.workerClass = require("mapbox-gl/dist/mapbox-gl-csp-worker").default;
+// ✅ THE FIX: Changed to a generic eslint-disable comment so the compiler doesn't throw a definition error.
+// eslint-disable-next-line
+import mapboxgl from "!mapbox-gl";
 
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -92,7 +91,6 @@ export default function MapView({ onEnd }) {
         const initializeMap = () => {
             if (!containerRef.current || mapRef.current) return;
 
-            // PREVENT RACE CONDITION: Ensure DOM is painted and has dimensions
             const { clientWidth, clientHeight } = containerRef.current;
             if (clientWidth === 0 || clientHeight === 0) {
                 animationFrameId = requestAnimationFrame(initializeMap);
@@ -160,7 +158,6 @@ export default function MapView({ onEnd }) {
 
                 setMapReady(true);
 
-                // Cascade resizes for extra safety on mobile layout shifts
                 requestAnimationFrame(() => {
                     mapInstance.resize();
                 });
@@ -189,7 +186,6 @@ export default function MapView({ onEnd }) {
             resizeObserver.observe(containerRef.current);
         };
 
-        // Start initialization loop
         initializeMap();
 
         return () => {
@@ -230,12 +226,10 @@ export default function MapView({ onEnd }) {
             const wrap = document.createElement("div");
             wrap.style.cssText = "position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;";
 
-            // Pulsing background ring
             const pulse = document.createElement("div");
             pulse.style.cssText = `position:absolute;width:40px;height:40px;border-radius:50%;background:${accentColor};opacity:0.15;z-index:0;`;
             pulse.className = "tg-pulse";
 
-            // Heading beam cone
             const beam = document.createElement("div");
             beam.className = "tg-heading-beam";
             beam.style.cssText = `position:absolute;inset:-24px;display:flex;align-items:center;justify-content:center;z-index:1;transform:rotate(${heading}deg);transition:transform 0.25s ease-out;opacity:${hasHeading ? 1 : 0};`;
@@ -251,12 +245,10 @@ export default function MapView({ onEnd }) {
                 </svg>
             `;
 
-            // White outer ring with dark border
             const dotRing = document.createElement("div");
             dotRing.style.cssText = "width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.35);border:2px solid #08080A;display:flex;align-items:center;justify-content:center;z-index:2;";
             dotRing.setAttribute("data-testid", "user-marker");
 
-            // Inner solid green dot
             const innerDot = document.createElement("div");
             innerDot.style.cssText = `width:10px;height:10px;border-radius:50%;background:${accentColor};`;
             dotRing.appendChild(innerDot);
@@ -438,9 +430,7 @@ export default function MapView({ onEnd }) {
                 }
 
                 setRoute(r);
-
                 setRouteError(null);
-
                 setCurrentStepIdx(0);
 
                 lastFetchRef.current = {
@@ -574,7 +564,6 @@ export default function MapView({ onEnd }) {
                         data,
                     });
 
-                    // 1. Soft accent glow
                     map.addLayer({
                         id: GLOW,
                         type: "line",
@@ -591,7 +580,6 @@ export default function MapView({ onEnd }) {
                         },
                     });
 
-                    // 2. High-contrast dark outline casing
                     map.addLayer({
                         id: CASING,
                         type: "line",
@@ -607,7 +595,6 @@ export default function MapView({ onEnd }) {
                         },
                     });
 
-                    // 3. Main colored line on top
                     map.addLayer({
                         id: LINE,
                         type: "line",
@@ -660,20 +647,12 @@ export default function MapView({ onEnd }) {
                 map.fitBounds(
                     [
                         [
-                            Math.min(
-                                ...lngs
-                            ),
-                            Math.min(
-                                ...lats
-                            ),
+                            Math.min(...lngs),
+                            Math.min(...lats),
                         ],
                         [
-                            Math.max(
-                                ...lngs
-                            ),
-                            Math.max(
-                                ...lats
-                            ),
+                            Math.max(...lngs),
+                            Math.max(...lats),
                         ],
                     ],
                     {
@@ -849,7 +828,6 @@ export default function MapView({ onEnd }) {
                 className="absolute inset-0 h-full w-full"
                 style={{ 
                     background: "#08080A",
-                    // FIX: Forces a new stacking context for WebGL to prevent Safari backdrop-filter render crash
                     transform: "translate3d(0,0,0)",
                     isolation: "isolate",
                 }}
