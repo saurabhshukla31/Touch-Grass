@@ -1,37 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
-import {
-    Coffee,
-    Fuel,
-    Hospital as HospitalIcon,
-    Utensils,
-    Pill,
-    Landmark,
-    Dumbbell,
-    Wine,
-    Shuffle,
-} from "lucide-react";
 import { CATEGORIES } from "@/lib/categories";
-import { GrassLeaf } from "@/components/icons/GrassLeaf";
 import { haptics } from "@/lib/haptics";
-
-const ICONS = {
-    grass: GrassLeaf,
-    coffee: Coffee,
-    fuel: Fuel,
-    hospital: HospitalIcon,
-    utensils: Utensils,
-    pill: Pill,
-    landmark: Landmark,
-    dumbbell: Dumbbell,
-    wine: Wine,
-    shuffle: Shuffle,
-};
 
 const cardSpring = { type: "spring", stiffness: 380, damping: 28, mass: 0.7 };
 
 function HeroCard({ category, onSelect }) {
-    const Icon = ICONS[category.iconKey] || Shuffle;
+    if (!category) return null;
     return (
         <motion.button
             data-testid={`category-${category.key}`}
@@ -43,16 +18,18 @@ function HeroCard({ category, onSelect }) {
             transition={cardSpring}
             className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select"
         >
-            <Icon size={30} strokeWidth={1.5} className="text-white/85" />
+            <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 8px ${category.glow || category.accent}66)` }}>
+                {category.svg}
+            </div>
             <div className="text-[20px] font-black tracking-tight text-white">
-                Touch Grass
+                {category.label}
             </div>
         </motion.button>
     );
 }
 
 function StandardCard({ category, onSelect }) {
-    const Icon = ICONS[category.iconKey] || Shuffle;
+    if (!category) return null;
     const isRandom = category.key === "random";
     return (
         <motion.button
@@ -63,15 +40,11 @@ function StandardCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.96 }}
             transition={cardSpring}
-            className={`group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select ${
-                isRandom ? "opacity-65" : ""
-            }`}
+            className={`group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select ${isRandom ? "opacity-65" : ""}`}
         >
-            <Icon
-                size={20}
-                strokeWidth={1.5}
-                className="text-white/80"
-            />
+            <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
+                {category.svg}
+            </div>
             <div className="text-[12.5px] font-semibold tracking-tight text-white/90">
                 {category.label}
             </div>

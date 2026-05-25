@@ -1,38 +1,13 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-    Coffee,
-    Fuel,
-    Hospital as HospitalIcon,
-    Utensils,
-    Pill,
-    Landmark,
-    Dumbbell,
-    Wine,
-    Shuffle,
-} from "lucide-react";
-import { GrassLeaf } from "@/components/icons/GrassLeaf";
 import { haptics } from "@/lib/haptics";
-
-const ICONS = {
-    grass: GrassLeaf,
-    coffee: Coffee,
-    fuel: Fuel,
-    hospital: HospitalIcon,
-    utensils: Utensils,
-    pill: Pill,
-    landmark: Landmark,
-    dumbbell: Dumbbell,
-    wine: Wine,
-    shuffle: Shuffle,
-};
 
 export default function RandomReveal({ category }) {
     useEffect(() => {
         if (category) haptics.soft();
     }, [category]);
     if (!category) return null;
-    const Icon = ICONS[category.iconKey] || Shuffle;
+
     return (
         <motion.div
             data-testid="random-reveal"
@@ -59,11 +34,12 @@ export default function RandomReveal({ category }) {
                         className="flex h-24 w-24 items-center justify-center rounded-3xl"
                         style={{
                             background: category.accentSoft,
-                            color: category.accent,
-                            boxShadow: `0 0 60px -8px ${category.accent}55, inset 0 0 0 1px ${category.accent}66`,
+                            boxShadow: `0 0 60px -8px ${category.glow || category.accent}55, inset 0 0 0 1px ${category.glow || category.accent}30`,
                         }}
                     >
-                        <Icon size={36} strokeWidth={1.6} />
+                        <div style={{ width: 48, height: 48, filter: `drop-shadow(0 0 12px ${category.glow || category.accent}88)` }}>
+                            {category.svg}
+                        </div>
                     </div>
                     <div className="mt-6 text-3xl font-black tracking-tight text-white">
                         {category.label}

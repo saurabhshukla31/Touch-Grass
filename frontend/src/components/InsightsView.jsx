@@ -3,34 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { listSessions, listPhotos, clearAllData } from "@/lib/db";
-import {
-    Coffee,
-    Fuel,
-    Hospital as HospitalIcon,
-    Utensils,
-    Pill,
-    Landmark,
-    Dumbbell,
-    Wine,
-    Shuffle,
-} from "lucide-react";
-import { GrassLeaf } from "@/components/icons/GrassLeaf";
 import { formatDistance } from "@/lib/geo";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
-
-const ICONS = {
-    grass: GrassLeaf,
-    coffee: Coffee,
-    fuel: Fuel,
-    hospital: HospitalIcon,
-    utensils: Utensils,
-    pill: Pill,
-    landmark: Landmark,
-    dumbbell: Dumbbell,
-    wine: Wine,
-    shuffle: Shuffle,
-};
+import { CATEGORIES } from "@/lib/categories";
 
 function Section({ title, children }) {
     return (
@@ -189,14 +165,16 @@ export default function InsightsView() {
                     ) : (
                         <ul className="flex flex-col gap-2">
                             {sessions.map((s) => {
-                                const Icon = ICONS[s.iconKey] || Shuffle;
+                                const category = CATEGORIES.find(c => c.iconKey === s.iconKey) || CATEGORIES.find(c => c.key === "random");
                                 return (
                                     <li
                                         key={s.id}
                                         className="flex items-center gap-3 rounded-2xl px-4 py-3 tg-glass"
                                     >
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04] text-white/75">
-                                            <Icon size={16} strokeWidth={1.6} />
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04]">
+                                            <div style={{ width: 20, height: 20, filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
+                                                {category.svg}
+                                            </div>
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="truncate text-sm font-semibold text-white">

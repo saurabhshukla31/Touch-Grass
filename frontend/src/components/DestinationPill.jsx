@@ -1,34 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import {
-    Coffee,
-    Fuel,
-    Hospital as HospitalIcon,
-    Utensils,
-    Pill,
-    Landmark,
-    Dumbbell,
-    Wine,
-    Shuffle,
-} from "lucide-react";
-import { GrassLeaf } from "@/components/icons/GrassLeaf";
 import { formatDistance } from "@/lib/geo";
 import { haptics } from "@/lib/haptics";
 import { useApp } from "@/lib/AppState";
-
-const ICONS = {
-    grass: GrassLeaf,
-    coffee: Coffee,
-    fuel: Fuel,
-    hospital: HospitalIcon,
-    utensils: Utensils,
-    pill: Pill,
-    landmark: Landmark,
-    dumbbell: Dumbbell,
-    wine: Wine,
-    shuffle: Shuffle,
-};
 
 // Single button that toggles between collapsed (testid pill-collapsed) and
 // expanded (testid pill-expanded) state. Using a single element avoids the
@@ -44,7 +19,6 @@ export default function DestinationPill({
     const { pillOpen, togglePill } = useApp();
     const open = pillOpen;
     if (!category) return null;
-    const Icon = ICONS[category.iconKey] || Shuffle;
 
     return (
         <div
@@ -77,10 +51,11 @@ export default function DestinationPill({
                     }
                     style={{
                         background: open ? category.accentSoft : "transparent",
-                        color: category.accent,
                     }}
                 >
-                    <Icon size={open ? 14 : 12} strokeWidth={1.8} />
+                    <div style={{ width: open ? 14 : 12, height: open ? 14 : 12, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 2px ${category.glow || category.accent}40)` }}>
+                        {category.svg}
+                    </div>
                 </motion.span>
 
                 {open ? (
