@@ -63,7 +63,7 @@ export default function HomeScreen({ onSelectCategory }) {
     return (
         <div
             data-testid="home-screen"
-            className="relative flex h-[100dvh] w-full flex-col px-5 pt-safe pb-28 tg-no-select"
+            className="relative flex h-[100dvh] w-full flex-col px-5 pt-safe pb-safe justify-center tg-no-select"
         >
             <div className="tg-ambient" />
 
@@ -71,7 +71,7 @@ export default function HomeScreen({ onSelectCategory }) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-                className="relative z-10 pt-5 pb-5"
+                className="relative z-10 pt-5 pb-5 w-full max-w-[400px] mx-auto"
             >
                 <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/35">
                     Touch Grass
@@ -92,12 +92,12 @@ export default function HomeScreen({ onSelectCategory }) {
                     delay: 0.08,
                     ease: [0.32, 0.72, 0, 1],
                 }}
-                className="relative z-10 flex min-h-0 flex-1 flex-col gap-2.5"
+                className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 pb-8 max-w-[400px] mx-auto w-full"
             >
-                <div className="flex-[1.35] min-h-[120px]">
+                <div className="flex-[1.5] w-full min-h-[140px]">
                     <HeroCard category={grass} onSelect={onSelectCategory} />
                 </div>
-                <div className="grid flex-[3] min-h-0 grid-cols-3 grid-rows-3 gap-2.5">
+                <div className="grid flex-[3] min-h-0 grid-cols-3 grid-rows-3 gap-3">
                     {rest.map((cat) => (
                         <StandardCard
                             key={cat.key}
