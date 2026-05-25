@@ -255,7 +255,7 @@ export function AppProvider({ children }) {
             pillTimerRef.current = setTimeout(() => {
                 setState((s) => ({ ...s, pillOpen: false }));
                 pillTimerRef.current = null;
-            }, 5000);
+            }, 3000);
         } else {
             setState((s) => ({ ...s, pillOpen: false }));
             if (pillTimerRef.current) {
