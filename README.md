@@ -1,4 +1,4 @@
-# 🌿 Touch Grass
+#  Touch Grass
 
 A premium, mobile-first Progressive Web App (PWA) designed to reconnect users with the physical world through calm, spatial navigation. Built with a bespoke **iOS-26 Liquid Glass** design language, it uses real-time geolocation, Mapbox routing, and local browser storage to guide you to nearby points of interest and verify when you've actually "touched grass."
 
