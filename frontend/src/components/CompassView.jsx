@@ -109,12 +109,12 @@ export default function CompassView({ onCancel }) {
     return (
         <div
             data-testid="compass-view"
-            className="relative flex h-[100dvh] w-full flex-col items-center px-6 pt-safe pb-32 tg-no-select"
+            className="relative flex h-[100dvh] w-full flex-col items-center px-6 pt-safe pb-28 tg-no-select"
         >
             <div className="tg-ambient" />
 
             {/* Destination pill, anchored top */}
-            <div className="relative z-20 mt-4 flex w-full justify-center">
+            <div className="absolute top-[env(safe-area-inset-top)] mt-8 left-0 right-0 z-20 flex w-full justify-center">
                 <DestinationPill
                     category={selectedCategory}
                     destination={destination}
@@ -124,12 +124,14 @@ export default function CompassView({ onCancel }) {
                 />
             </div>
 
-            {/* Compass rose */}
-            <div className="relative z-10 my-auto flex h-[320px] w-[320px] items-center justify-center">
-                {/* outer faint ring */}
-                <div
-                    className="absolute inset-0 rounded-full"
-                    style={{
+            {/* Main Compass Area (pushed down slightly) */}
+            <div className="flex-1 flex flex-col items-center justify-center pt-16 w-full">
+                {/* Compass rose */}
+                <div className="relative z-10 flex h-[320px] w-[320px] items-center justify-center shrink-0">
+                    {/* outer faint ring */}
+                    <div
+                        className="absolute inset-0 rounded-full"
+                        style={{
                         background:
                             "radial-gradient(closest-side, rgba(16,185,129,0.05), transparent 70%)",
                     }}
@@ -189,7 +191,7 @@ export default function CompassView({ onCancel }) {
             </div>
 
             {/* Stats */}
-            <div className="relative z-10 mb-4 flex flex-col items-center gap-1.5">
+            <div className="relative z-10 mt-8 mb-4 flex flex-col items-center gap-1.5 shrink-0">
                 <div
                     data-testid="compass-distance"
                     className="text-[56px] font-black leading-none tracking-tighter text-white"
@@ -210,6 +212,7 @@ export default function CompassView({ onCancel }) {
                     </span>
                 </div>
             </div>
+            </div>
 
             {/* Cancel */}
             <button
@@ -218,7 +221,7 @@ export default function CompassView({ onCancel }) {
                     haptics.tap();
                     onCancel?.();
                 }}
-                className="relative z-10 mb-2 flex h-11 items-center gap-2 rounded-full px-4 text-[12px] font-semibold tracking-wide text-white/55 tg-glass active:scale-95"
+                className="relative z-10 mt-auto mb-5 flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[12px] font-semibold tracking-wide text-white/55 tg-glass active:scale-95"
             >
                 <X size={14} strokeWidth={1.8} />
                 End session

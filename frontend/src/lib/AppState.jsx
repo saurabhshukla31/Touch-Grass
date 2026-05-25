@@ -242,7 +242,16 @@ export function AppProvider({ children }) {
             clearTimeout(pillTimerRef.current);
             pillTimerRef.current = null;
         }
-        setState((s) => ({ ...s, pillOpen: !s.pillOpen }));
+        setState((s) => {
+            const nextOpen = !s.pillOpen;
+            if (nextOpen) {
+                pillTimerRef.current = setTimeout(() => {
+                    setState((s2) => ({ ...s2, pillOpen: false }));
+                    pillTimerRef.current = null;
+                }, 3000);
+            }
+            return { ...s, pillOpen: nextOpen };
+        });
     }, []);
 
     // Automatically manage pillOpen timer when destination changes or tab switches

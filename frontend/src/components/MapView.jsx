@@ -19,6 +19,7 @@ import {
     Square,
     X,
     Navigation2,
+    LocateFixed,
 } from "lucide-react";
 
 import { useApp } from "@/lib/AppState";
@@ -154,6 +155,45 @@ export default function MapView({ onEnd }) {
                             } catch { }
                         }
                     });
+
+                    // Add 3D buildings layer
+                    const labelLayerId = layers.find(
+                        (layer) => layer.type === "symbol" && layer.layout["text-field"]
+                    )?.id;
+
+                    mapInstance.addLayer(
+                        {
+                            id: "3d-buildings",
+                            source: "composite",
+                            "source-layer": "building",
+                            filter: ["==", "extrude", "true"],
+                            type: "fill-extrusion",
+                            minzoom: 15,
+                            paint: {
+                                "fill-extrusion-color": "#111218",
+                                "fill-extrusion-height": [
+                                    "interpolate",
+                                    ["linear"],
+                                    ["zoom"],
+                                    15,
+                                    0,
+                                    15.05,
+                                    ["get", "height"],
+                                ],
+                                "fill-extrusion-base": [
+                                    "interpolate",
+                                    ["linear"],
+                                    ["zoom"],
+                                    15,
+                                    0,
+                                    15.05,
+                                    ["get", "min_height"],
+                                ],
+                                "fill-extrusion-opacity": 0.85,
+                            },
+                        },
+                        labelLayerId
+                    );
                 } catch { }
 
                 setMapReady(true);
@@ -813,6 +853,20 @@ export default function MapView({ onEnd }) {
             onEnd?.();
         }, [update, onEnd]);
 
+    const handleRecenter = useCallback(() => {
+        const map = mapRef.current;
+        if (!map || !mapReady || !userLocation) return;
+        
+        haptics.tap();
+        map.easeTo({
+            center: [userLocation.lng, userLocation.lat],
+            zoom: 17,
+            pitch: 55,
+            bearing: userLocation.heading ?? 0,
+            duration: 500,
+        });
+    }, [userLocation, mapReady]);
+
     if (!tokenAvailable) {
         return (
             <div className="flex h-dvh items-center justify-center bg-black text-white">
@@ -893,6 +947,25 @@ export default function MapView({ onEnd }) {
                             </div>
                         </motion.div>
                     )}
+            </AnimatePresence>
+
+            {/* Recenter button (shown only during navigation) */}
+            <AnimatePresence>
+                {navStarted && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleRecenter}
+                        className="absolute right-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white shadow-[0_8px_32px_rgba(0,0,0,0.5)] ring-1 ring-white/20 backdrop-blur-md tg-glass"
+                        style={{
+                            bottom: "calc(env(safe-area-inset-bottom, 0px) + 250px)",
+                        }}
+                    >
+                        <LocateFixed size={20} strokeWidth={1.8} />
+                    </motion.button>
+                )}
             </AnimatePresence>
 
             {/* Bottom info card */}

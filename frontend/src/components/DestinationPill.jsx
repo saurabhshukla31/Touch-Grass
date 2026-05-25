@@ -23,7 +23,7 @@ export default function DestinationPill({
     return (
         <div
             data-testid="destination-pill-wrap"
-            className={`relative z-30 tg-no-select ${className}`}
+            className={`relative z-30 tg-no-select touch-manipulation ${className}`}
             style={{ display: "inline-flex" }}
         >
             <motion.button
