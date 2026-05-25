@@ -184,7 +184,12 @@ export default function SettingsView() {
                         <Toggle
                             testid="haptics-toggle"
                             value={draftHaptics}
-                            onChange={setDraftHaptics}
+                            onChange={(val) => {
+                                if (val && typeof navigator !== 'undefined' && typeof navigator.vibrate !== 'function') {
+                                    toast.error("Haptics are not supported on this device/browser.");
+                                }
+                                setDraftHaptics(val);
+                            }}
                         />
                     </div>
                 </div>
