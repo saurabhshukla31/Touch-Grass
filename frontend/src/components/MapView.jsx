@@ -81,98 +81,116 @@ export default function MapView({ onEnd }) {
     useEffect(() => {
         if (!tokenAvailable) return;
 
-        if (!containerRef.current || mapRef.current) return;
+        let animationFrameId;
+        let mapInstance;
+        let resizeObserver;
 
-        mapboxgl.accessToken = getMapboxToken();
+        const initializeMap = () => {
+            if (!containerRef.current || mapRef.current) return;
 
-        const start =
-            userLocation ??
-            destination ?? {
-                lng: 0,
-                lat: 20,
-            };
+            // PREVENT RACE CONDITION: Ensure DOM is painted and has dimensions
+            const { clientWidth, clientHeight } = containerRef.current;
+            if (clientWidth === 0 || clientHeight === 0) {
+                animationFrameId = requestAnimationFrame(initializeMap);
+                return;
+            }
 
-        const map = new mapboxgl.Map({
-            container: containerRef.current,
-            style: MAP_STYLE,
-            center: [start.lng, start.lat],
-            zoom: 15,
-            attributionControl: false,
-            logoPosition: "bottom-left",
-            pitchWithRotate: false,
-            dragRotate: false,
-        });
+            mapboxgl.accessToken = getMapboxToken();
 
-        map.on("load", () => {
-            try {
-                const layers =
-                    map.getStyle().layers ?? [];
+            const start =
+                userLocation ??
+                destination ?? {
+                    lng: 0,
+                    lat: 20,
+                };
 
-                layers.forEach((l) => {
-                    if (!l) return;
+            mapInstance = new mapboxgl.Map({
+                container: containerRef.current,
+                style: MAP_STYLE,
+                center: [start.lng, start.lat],
+                zoom: 15,
+                attributionControl: false,
+                logoPosition: "bottom-left",
+                pitchWithRotate: false,
+                dragRotate: false,
+            });
 
-                    if (
-                        l.type === "line" &&
-                        /road|street|highway/i.test(l.id)
-                    ) {
-                        try {
-                            map.setPaintProperty(
-                                l.id,
-                                "line-color",
-                                "#4D4E58"
-                            );
-                        } catch { }
-                    }
+            mapInstance.on("load", () => {
+                try {
+                    const layers =
+                        mapInstance.getStyle().layers ?? [];
 
-                    if (l.type === "symbol") {
-                        try {
-                            map.setPaintProperty(
-                                l.id,
-                                "text-color",
-                                "rgba(255,255,255,0.62)"
-                            );
+                    layers.forEach((l) => {
+                        if (!l) return;
 
-                            map.setPaintProperty(
-                                l.id,
-                                "text-halo-color",
-                                "rgba(0,0,0,0.85)"
-                            );
-                        } catch { }
-                    }
+                        if (
+                            l.type === "line" &&
+                            /road|street|highway/i.test(l.id)
+                        ) {
+                            try {
+                                mapInstance.setPaintProperty(
+                                    l.id,
+                                    "line-color",
+                                    "#4D4E58"
+                                );
+                            } catch { }
+                        }
+
+                        if (l.type === "symbol") {
+                            try {
+                                mapInstance.setPaintProperty(
+                                    l.id,
+                                    "text-color",
+                                    "rgba(255,255,255,0.62)"
+                                );
+
+                                mapInstance.setPaintProperty(
+                                    l.id,
+                                    "text-halo-color",
+                                    "rgba(0,0,0,0.85)"
+                                );
+                            } catch { }
+                        }
+                    });
+                } catch { }
+
+                setMapReady(true);
+
+                // Cascade resizes for extra safety on mobile layout shifts
+                requestAnimationFrame(() => {
+                    mapInstance.resize();
                 });
-            } catch { }
 
-            setMapReady(true);
+                setTimeout(() => {
+                    mapInstance?.resize();
+                }, 500);
 
-            requestAnimationFrame(() => {
-                map.resize();
+                setTimeout(() => {
+                    mapInstance?.resize();
+                }, 1200);
+
+                window.addEventListener("resize", () => {
+                    mapInstance?.resize();
+                });
             });
 
-            setTimeout(() => {
-                map.resize();
-            }, 500);
+            mapRef.current = mapInstance;
 
-            setTimeout(() => {
-                map.resize();
-            }, 1200);
-
-            window.addEventListener("resize", () => {
-                map.resize();
+            resizeObserver = new ResizeObserver(() => {
+                try {
+                    mapInstance?.resize();
+                } catch { }
             });
-        });
 
-        mapRef.current = map;
+            resizeObserver.observe(containerRef.current);
+        };
 
-        const ro = new ResizeObserver(() => {
-            try {
-                map.resize();
-            } catch { }
-        });
-
-        ro.observe(containerRef.current);
+        // Start initialization loop
+        initializeMap();
 
         return () => {
-            ro.disconnect();
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (resizeObserver) resizeObserver.disconnect();
 
             userMarkerRef.current?.remove();
             destMarkerRef.current?.remove();
@@ -180,10 +198,11 @@ export default function MapView({ onEnd }) {
             userMarkerRef.current = null;
             destMarkerRef.current = null;
 
-            map.remove();
+            if (mapInstance) {
+                mapInstance.remove();
+            }
 
             mapRef.current = null;
-
             setMapReady(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -824,7 +843,12 @@ export default function MapView({ onEnd }) {
             <div
                 ref={containerRef}
                 className="absolute inset-0 h-full w-full"
-                style={{ background: "#08080A" }}
+                style={{ 
+                    background: "#08080A",
+                    // FIX: Forces a new stacking context for WebGL to prevent Safari backdrop-filter render crash
+                    transform: "translate3d(0,0,0)",
+                    isolation: "isolate",
+                }}
             />
 
             {!navStarted && (
