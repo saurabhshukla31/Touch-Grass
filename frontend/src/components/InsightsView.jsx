@@ -171,11 +171,6 @@ export default function InsightsView() {
                                         key={s.id}
                                         className="flex items-center gap-3 rounded-2xl px-4 py-3 tg-glass"
                                     >
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.04]">
-                                            <div style={{ width: 20, height: 20, filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
-                                                {category.svg}
-                                            </div>
-                                        </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="truncate text-sm font-semibold text-white">
                                                 {s.destinationName}

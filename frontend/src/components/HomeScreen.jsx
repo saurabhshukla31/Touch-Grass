@@ -16,7 +16,7 @@ function HeroCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.97 }}
             transition={cardSpring}
-            className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select"
+            className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select border-[0.5px] border-slate-300/50 shadow-[0_0_12px_rgba(203,213,225,0.3),inset_0_0_8px_rgba(255,255,255,0.2)]"
         >
             <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 8px ${category.glow || category.accent}66)` }}>
                 {category.svg}
@@ -40,7 +40,7 @@ function StandardCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.96 }}
             transition={cardSpring}
-            className={`group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select ${isRandom ? "opacity-65" : ""}`}
+            className={`group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select border-[0.5px] border-slate-300/50 shadow-[0_0_10px_rgba(203,213,225,0.25),inset_0_0_6px_rgba(255,255,255,0.15)] ${isRandom ? "opacity-65" : ""}`}
         >
             <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
                 {category.svg}
