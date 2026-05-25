@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Footprints, Bike, Car, Map, Navigation, SlidersHorizontal } from "lucide-react";
+import { Check, Footprints, Bike, Car, Map, Navigation } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 
@@ -107,13 +107,13 @@ export default function SettingsView() {
             <motion.header
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 pt-8 pb-4 shrink-0 flex items-center gap-3"
+                className="relative z-10 pt-8 pb-4 shrink-0"
             >
-                <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center ring-1 ring-white/20">
-                    <SlidersHorizontal size={20} className="text-white" />
-                </div>
-                <h1 className="text-[28px] font-black tracking-tight text-white leading-none">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
                     Settings
+                </div>
+                <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
+                    How you touch grass.
                 </h1>
             </motion.header>
 
