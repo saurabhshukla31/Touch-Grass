@@ -1,0 +1,11 @@
+{
+  "short_name": "Touch Grass",
+  "name": "Touch Grass — Go outside.",
+  "icons": [],
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#08080A",
+  "background_color": "#08080A",
+  "categories": ["navigation", "lifestyle"]
+}
