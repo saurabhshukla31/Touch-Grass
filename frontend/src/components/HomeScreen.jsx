@@ -16,7 +16,11 @@ function HeroCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.97 }}
             transition={cardSpring}
-            className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select border-[1px] border-slate-200/80 shadow-[0_0_15px_rgba(203,213,225,0.6),inset_0_0_10px_rgba(255,255,255,0.4)]"
+            className="group relative flex h-full w-full flex-col items-center justify-center gap-2.5 overflow-hidden rounded-[26px] tg-glass tg-no-select"
+            style={{ 
+                border: `1px solid ${category.accent}99`, 
+                boxShadow: `0 0 15px ${category.glow || category.accent}66, inset 0 0 10px ${category.glow || category.accent}4D` 
+            }}
         >
             <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 8px ${category.glow || category.accent}66)` }}>
                 {category.svg}
@@ -40,7 +44,7 @@ function StandardCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.96 }}
             transition={cardSpring}
-            className={`group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select border-[1px] border-slate-200/70 shadow-[0_0_12px_rgba(203,213,225,0.4),inset_0_0_8px_rgba(255,255,255,0.3)] ${isRandom ? "opacity-65" : ""}`}
+            className="group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select !border-[1px] !border-slate-200/70 !shadow-[0_0_12px_rgba(203,213,225,0.4),inset_0_0_8px_rgba(255,255,255,0.3)]"
         >
             <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
                 {category.svg}
