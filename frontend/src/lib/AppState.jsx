@@ -14,7 +14,7 @@ const AppCtx = createContext(null);
 
 const initial = {
     mode: "idle", // 'idle' | 'resolving' | 'active'
-    currentTab: "compass", // 'compass' | 'map' | 'insights' | 'settings'
+    currentTab: "home", // 'home' | 'compass' | 'map' | 'insights' | 'settings'
     homeOverlay: null, // 'insights' | 'settings' | null  (when idle and user opened those)
     selectedCategory: null, // category object from /lib/categories
     destination: null, // { name, address, lng, lat, ... }
@@ -26,6 +26,7 @@ const initial = {
     hapticsEnabled: true,
     mapViewMode: "2d",
     navViewMode: "3d",
+    appMode: "explore",
     locationPermission: "unknown", // 'unknown' | 'granted' | 'denied'
     orientationPermission: "unknown",
     heading: null, // device heading degrees (0-360), magnetometer
@@ -67,6 +68,7 @@ export function AppProvider({ children }) {
                     hapticsEnabled: true,
                     mapViewMode: s.mapViewMode || "2d",
                     navViewMode: s.navViewMode || "3d",
+                    appMode: s.appMode || "explore",
                 }));
             } catch {
                 /* ignore */
@@ -345,6 +347,15 @@ export function AppProvider({ children }) {
         }
     }, []);
 
+    const setAppMode = useCallback(async (appMode) => {
+        setState((s) => ({ ...s, appMode }));
+        try {
+            await persistSettings({ appMode });
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const resetSession = useCallback(() => {
         setState((s) => ({
             ...s,
@@ -371,6 +382,7 @@ export function AppProvider({ children }) {
             setTravelMode,
             setMapViewMode,
             setNavViewMode,
+            setAppMode,
             resetSession,
             togglePill,
             subscribeHeading,
@@ -386,6 +398,7 @@ export function AppProvider({ children }) {
             setTravelMode,
             setMapViewMode,
             setNavViewMode,
+            setAppMode,
             resetSession,
             togglePill,
             subscribeHeading,

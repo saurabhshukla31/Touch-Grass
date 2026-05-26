@@ -1,46 +1,107 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { Check, Footprints, Bike, Car, Map, Navigation, Globe } from "lucide-react";
+import { Footprints, Bike, Car, Map, Navigation, Globe, Compass, Heart, Trees, Shield, Users, Sparkles } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
+import { APP_VERSION } from "@/lib/version";
+
+function ModeSelector({ value, onChange }) {
+    const modes = [
+        { value: "explore", icon: Compass, color: "emerald", label: "Explore" },
+        { value: "date", icon: Heart, color: "rose", label: "Date" },
+        { value: "escape", icon: Trees, color: "cyan", label: "Escape" },
+        { value: "essentials", icon: Shield, color: "amber", label: "Essentials" },
+        { value: "social", icon: Users, color: "violet", label: "Social" },
+    ];
+    
+    const activeColors = {
+        emerald: "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.25)]",
+        rose: "bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.25)]",
+        cyan: "bg-cyan-500/25 text-cyan-300 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.25)]",
+        amber: "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)]",
+        violet: "bg-violet-500/25 text-violet-300 border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.25)]",
+    };
+
+    const activeModeObj = modes.find((m) => m.value === value);
+    const ActiveIcon = activeModeObj?.icon;
+    const activeColorText = {
+        emerald: "text-emerald-300 shadow-[inset_0_0_12px_rgba(16,185,129,0.1)] border-emerald-500/20 bg-emerald-500/5",
+        rose: "text-rose-300 shadow-[inset_0_0_12px_rgba(244,63,94,0.1)] border-rose-500/20 bg-rose-500/5",
+        cyan: "text-cyan-300 shadow-[inset_0_0_12px_rgba(6,182,212,0.1)] border-cyan-500/20 bg-cyan-500/5",
+        amber: "text-amber-300 shadow-[inset_0_0_12px_rgba(245,158,11,0.1)] border-amber-500/20 bg-amber-500/5",
+        violet: "text-violet-300 shadow-[inset_0_0_12px_rgba(139,92,246,0.1)] border-violet-500/20 bg-violet-500/5",
+    }[activeModeObj?.color || "emerald"];
+
+    return (
+        <div className="flex flex-col gap-2 w-full">
+            <div className="flex w-full justify-between items-center rounded-2xl bg-black/25 p-1.5 ring-1 ring-white/10 backdrop-blur-md">
+                {modes.map((m) => {
+                    const active = value === m.value;
+                    const Icon = m.icon;
+                    return (
+                        <button
+                            key={m.value}
+                            data-testid={`mode-${m.value}`}
+                            onClick={() => {
+                                haptics.success();
+                                onChange(m.value);
+                            }}
+                            className={`flex flex-col items-center justify-center rounded-[14px] aspect-square w-12 border transition-all duration-300 ${
+                                active
+                                    ? activeColors[m.color]
+                                    : "border-transparent text-white/60 hover:text-white/85 hover:bg-white/[0.04]"
+                            }`}
+                        >
+                            <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+                        </button>
+                    );
+                })}
+            </div>
+            <div className={`text-xs font-black uppercase tracking-[0.15em] border rounded-xl px-4 py-2.5 text-center min-h-[44px] flex items-center justify-center gap-2 transition-all duration-300 ${activeColorText}`}>
+                {ActiveIcon && <ActiveIcon size={14} strokeWidth={2.5} />}
+                {activeModeObj ? `${activeModeObj.label} Mode` : ""}
+            </div>
+        </div>
+    );
+}
 
 function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
     const activeColors = {
-        emerald: "text-emerald-400",
-        blue: "text-blue-400",
-        amber: "text-amber-400",
-        violet: "text-violet-400",
-        cyan: "text-cyan-400",
+        emerald: "text-emerald-300",
+        blue: "text-blue-300",
+        amber: "text-amber-300",
+        violet: "text-violet-300",
+        cyan: "text-cyan-300",
     };
     return (
-        <div className="flex w-full rounded-[18px] bg-black/20 p-1.5 ring-1 ring-white/5 backdrop-blur-md">
+        <div className="flex w-full rounded-[18px] bg-black/25 p-1.5 ring-1 ring-white/10 backdrop-blur-md">
             {options.map((opt) => {
                 const active = value === opt.value;
                 const Icon = opt.icon;
-                const iconColor = active ? (activeColors[opt.color] || "text-white") : "text-white/40 group-hover:text-white/60";
+                const iconColor = active ? (activeColors[opt.color] || "text-white") : "text-white/60 group-hover:text-white/80";
                 return (
                     <button
                         key={opt.value}
                         data-testid={`${testIdPrefix}-${opt.value}`}
                         onClick={() => {
-                            haptics.tap();
+                            haptics.success();
                             onChange(opt.value);
                         }}
-                        className={`flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2.5 transition-[background-color,color,box-shadow,border-color] duration-300 group ${
+                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.5 transition-[background-color,color,box-shadow,border-color] duration-300 group ${
                             active
                                 ? "bg-white/15 text-white ring-1 ring-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
-                                : "text-white/40 hover:text-white/60 hover:bg-white/[0.04]"
+                                : "text-white/60 hover:text-white/80 hover:bg-white/[0.04]"
                         }`}
                     >
                         {Icon && (
                             <Icon 
-                                size={opt.label ? 14 : 18} 
+                                size={opt.label ? 12 : 18} 
                                 strokeWidth={active ? 2.5 : 2} 
                                 className={`transition-colors duration-300 ${iconColor}`}
                             />
                         )}
                         {opt.label && (
-                            <span className="text-[11px] font-bold uppercase tracking-wider">
+                            <span className="text-[10px] font-bold uppercase tracking-normal whitespace-nowrap">
                                 {opt.label}
                             </span>
                         )}
@@ -53,19 +114,19 @@ function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
 
 function SettingItem({ label, icon: Icon, color = "emerald", children }) {
     const colors = {
-        emerald: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15",
-        blue: "bg-blue-500/10 text-blue-400 border border-blue-500/15",
-        amber: "bg-amber-500/10 text-amber-400 border border-amber-500/15",
-        rose: "bg-rose-500/10 text-rose-400 border border-rose-500/15",
-        violet: "bg-violet-500/10 text-violet-400 border border-violet-500/15",
-        cyan: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15",
+        emerald: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
+        blue: "bg-blue-500/10 text-blue-300 border border-blue-500/20",
+        amber: "bg-amber-500/10 text-amber-300 border border-amber-500/20",
+        rose: "bg-rose-500/10 text-rose-300 border border-rose-500/20",
+        violet: "bg-violet-500/10 text-violet-300 border border-violet-500/20",
+        cyan: "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20",
     };
     return (
-        <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 ml-1">
+        <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-white/80 ml-1">
                 {Icon && (
-                    <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${colors[color] || colors.emerald}`}>
-                        <Icon size={13} strokeWidth={2.2} />
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${colors[color] || colors.emerald}`}>
+                        <Icon size={12} strokeWidth={2.2} />
                     </div>
                 )}
                 {label}
@@ -85,52 +146,25 @@ export default function SettingsView() {
         setMapViewMode,
         navViewMode,
         setNavViewMode,
+        appMode,
+        setAppMode,
     } = useApp();
-
-    const [draftUnits, setDraftUnits] = useState(units);
-    const [draftMode, setDraftMode] = useState(travelMode);
-    const [draftMapMode, setDraftMapMode] = useState(mapViewMode);
-    const [draftNavMode, setDraftNavMode] = useState(navViewMode);
-    const [saving, setSaving] = useState(false);
-
-    useEffect(() => setDraftUnits(units), [units]);
-    useEffect(() => setDraftMode(travelMode), [travelMode]);
-    useEffect(() => setDraftMapMode(mapViewMode), [mapViewMode]);
-    useEffect(() => setDraftNavMode(navViewMode), [navViewMode]);
-
-    const dirty =
-        draftUnits !== units ||
-        draftMode !== travelMode ||
-        draftMapMode !== mapViewMode ||
-        draftNavMode !== navViewMode;
-
-    const onSave = async () => {
-        setSaving(true);
-        try {
-            if (draftUnits !== units) await setUnits(draftUnits);
-            if (draftMode !== travelMode) await setTravelMode(draftMode);
-            if (draftMapMode !== mapViewMode) await setMapViewMode(draftMapMode);
-            if (draftNavMode !== navViewMode) await setNavViewMode(draftNavMode);
-            haptics.success();
-        } finally {
-            setSaving(false);
-        }
-    };
 
     return (
         <div
             data-testid="settings-view"
-            className="relative h-[100dvh] w-full overflow-hidden px-5 pt-safe flex flex-col tg-no-select pb-[110px]"
+            className="relative h-[100dvh] w-full overflow-hidden px-6 pt-safe flex flex-col tg-no-select pb-[96px]"
         >
             <div className="tg-ambient" />
             
             <motion.header
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 pt-8 pb-4 shrink-0"
+                className="relative z-10 pt-4 pb-2 shrink-0 w-full max-w-[400px] mx-auto"
             >
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
-                    Settings
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/50 flex items-center justify-between">
+                    <span>Settings</span>
+                    <span>V.{APP_VERSION}</span>
                 </div>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
                     How you touch grass.
@@ -140,26 +174,21 @@ export default function SettingsView() {
             <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 flex-1 flex flex-col justify-center min-h-0"
+                className="relative z-10 flex-1 flex flex-col mt-2 mb-0 min-h-0 w-full max-w-[400px] mx-auto"
             >
-                <div className="relative overflow-hidden rounded-[32px] p-6 bg-white/[0.03] shadow-2xl ring-1 ring-white/10 backdrop-blur-xl flex flex-col gap-6 before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/5 before:to-transparent before:pointer-events-none">
-                    <SettingItem label="Measurement System" icon={Globe} color="cyan">
-                        <SegmentedIcon
-                            testIdPrefix="units"
-                            value={draftUnits}
-                            onChange={setDraftUnits}
-                            options={[
-                                { value: "metric", label: "Metric" },
-                                { value: "imperial", label: "Imperial" },
-                            ]}
+                <div className="relative flex-1 flex flex-col justify-between rounded-[32px] p-6 tg-glass">
+                    <SettingItem label="Experience Mode" icon={Sparkles} color="emerald">
+                        <ModeSelector
+                            value={appMode}
+                            onChange={setAppMode}
                         />
                     </SettingItem>
 
                     <SettingItem label="Default Transport" icon={Footprints} color="emerald">
                         <SegmentedIcon
                             testIdPrefix="travel"
-                            value={draftMode}
-                            onChange={setDraftMode}
+                            value={travelMode}
+                            onChange={setTravelMode}
                             options={[
                                 { value: "walking", icon: Footprints, color: "emerald" },
                                 { value: "cycling", icon: Bike, color: "blue" },
@@ -168,12 +197,12 @@ export default function SettingsView() {
                         />
                     </SettingItem>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                         <SettingItem label="Map View" icon={Map} color="amber">
                             <SegmentedIcon
                                 testIdPrefix="mapview"
-                                value={draftMapMode}
-                                onChange={setDraftMapMode}
+                                value={mapViewMode}
+                                onChange={setMapViewMode}
                                 options={[
                                     { value: "2d", label: "2D" },
                                     { value: "3d", label: "3D" },
@@ -184,8 +213,8 @@ export default function SettingsView() {
                         <SettingItem label="Navigation" icon={Navigation} color="violet">
                             <SegmentedIcon
                                 testIdPrefix="navview"
-                                value={draftNavMode}
-                                onChange={setDraftNavMode}
+                                value={navViewMode}
+                                onChange={setNavViewMode}
                                 options={[
                                     { value: "2d", label: "2D" },
                                     { value: "3d", label: "3D" },
@@ -193,25 +222,20 @@ export default function SettingsView() {
                             />
                         </SettingItem>
                     </div>
+
+                    <SettingItem label="Units" icon={Globe} color="cyan">
+                        <SegmentedIcon
+                            testIdPrefix="units"
+                            value={units}
+                            onChange={setUnits}
+                            options={[
+                                { value: "metric", label: "Metric" },
+                                { value: "imperial", label: "Imperial" },
+                            ]}
+                        />
+                    </SettingItem>
                 </div>
             </motion.div>
-
-            <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                data-testid="settings-save"
-                disabled={!dirty || saving}
-                onClick={onSave}
-                whileTap={{ scale: 0.98 }}
-                className={`mt-4 relative z-10 flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-2xl text-sm font-black tracking-wide transition-[background-color,color,box-shadow,border-color] duration-300 ${
-                    dirty && !saving
-                        ? "bg-emerald-500 text-black shadow-[0_8px_30px_-10px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400"
-                        : "bg-white/[0.04] text-white/30 ring-1 ring-white/5"
-                }`}
-            >
-                <Check size={18} strokeWidth={3} className={dirty ? "opacity-100" : "opacity-0 absolute"} />
-                {saving ? "SAVING..." : dirty ? "SAVE CHANGES" : "UP TO DATE"}
-            </motion.button>
         </div>
     );
 }

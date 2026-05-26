@@ -174,8 +174,8 @@ export default function CompassView({ onCancel }) {
                             "radial-gradient(closest-side, rgba(16,185,129,0.05), transparent 70%)",
                     }}
                 />
-                <div className="absolute inset-2 rounded-full border border-white/[0.06]" />
-                <div className="absolute inset-8 rounded-full border border-white/[0.04]" />
+                <div className="absolute inset-2 rounded-full border border-white/[0.06] tg-compass-ring-outer" />
+                <div className="absolute inset-8 rounded-full border border-white/[0.04] tg-compass-ring-inner" />
 
                 {/* Tick marks (rotated with heading) */}
                 <motion.div
@@ -198,13 +198,17 @@ export default function CompassView({ onCancel }) {
                     ].map(({ l, a }) => (
                         <div
                             key={l}
-                            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-[0.3em]"
+                            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[13px] font-black uppercase tracking-[0.3em]"
                             style={{
                                 transform: `translate(-50%, -50%) rotate(${a}deg) translateY(-138px) rotate(${-a}deg)`,
                                 color:
                                     l === "N"
-                                        ? "rgba(16,185,129,0.9)"
-                                        : "rgba(255,255,255,0.45)",
+                                        ? "rgba(16,185,129,1.0)"
+                                        : "rgba(255,255,255,0.75)",
+                                textShadow:
+                                    l === "N"
+                                        ? "0 0 8px rgba(16,185,129,0.5)"
+                                        : "0 0 6px rgba(255,255,255,0.2)",
                             }}
                         >
                             {l}
@@ -263,11 +267,11 @@ export default function CompassView({ onCancel }) {
             </button>
 
             {showOrientPrompt && orientationPermission === "unknown" && (
-                <div className="fixed inset-0 z-40 flex items-end justify-center px-5 pb-32">
+                <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 backdrop-blur-sm px-5 pb-32">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-sm rounded-3xl p-5 tg-glass-strong"
+                        className="w-full max-w-sm rounded-3xl p-5 bg-[#08080a] border border-white/10 shadow-2xl"
                     >
                         <div className="flex items-start gap-3">
                             <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">

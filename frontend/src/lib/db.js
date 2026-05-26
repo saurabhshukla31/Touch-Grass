@@ -77,6 +77,7 @@ const DEFAULT_SETTINGS = {
     hapticsEnabled: true,
     mapViewMode: "2d",
     navViewMode: "3d",
+    appMode: "explore",
 };
 
 export async function getSettings() {
@@ -90,4 +91,9 @@ export async function setSettings(next) {
     const merged = { ...(await getSettings()), ...next };
     await db.put("settings", merged, SETTINGS_KEY);
     return merged;
+}
+
+export async function migrateDB(oldAppVersion, newAppVersion) {
+    console.log(`Running IndexedDB data migrations from ${oldAppVersion} to ${newAppVersion}...`);
+    // Custom database migrations can be added here if app versions change.
 }

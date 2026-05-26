@@ -1,9 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Compass, Map as MapIcon, ChartNoAxesCombined, Settings } from "lucide-react";
+import { Home, Compass, Map as MapIcon, ChartNoAxesCombined, Settings } from "lucide-react";
 import { haptics } from "@/lib/haptics";
 
 const TABS = [
+    { key: "home", label: "Home", Icon: Home },
     { key: "compass", label: "Compass", Icon: Compass },
     { key: "map", label: "Map", Icon: MapIcon },
     { key: "insights", label: "Stats", Icon: ChartNoAxesCombined },

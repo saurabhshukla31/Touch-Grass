@@ -9,17 +9,95 @@ export const getMapboxToken = () => TOKEN;
 const SEARCH_BASE = "https://api.mapbox.com/search/searchbox/v1";
 const DIRECTIONS_BASE = "https://api.mapbox.com/directions/v5/mapbox";
 
+function processFeatures(features, lng, lat, excludeKeywords = []) {
+    const enriched = features
+        .filter((f) => f && f.geometry && f.geometry.coordinates)
+        .filter((f) => {
+            const props = f.properties || {};
+            const name = (props.name || props.name_preferred || "").toLowerCase();
+            const address = (
+                props.address ||
+                (props.context && props.context.address && props.context.address.name) ||
+                props.full_address ||
+                props.place_formatted ||
+                ""
+            ).toLowerCase();
+
+            return !excludeKeywords.some((keyword) => {
+                const kw = keyword.toLowerCase();
+                return name.includes(kw) || address.includes(kw);
+            });
+        })
+        .map((f) => {
+            const [flng, flat] = f.geometry.coordinates;
+            const dx = (flng - lng) * 111000 * Math.cos((lat * Math.PI) / 180);
+            const dy = (flat - lat) * 111000;
+            return { f, sq: dx * dx + dy * dy };
+        })
+        .sort((a, b) => a.sq - b.sq);
+    if (!enriched.length) return null;
+    const top = enriched[0].f;
+    const [flng, flat] = top.geometry.coordinates;
+    const props = top.properties || {};
+    return {
+        name: props.name || props.name_preferred || "Unknown place",
+        address:
+            props.address ||
+            (props.context && props.context.address && props.context.address.name) ||
+            props.full_address ||
+            props.place_formatted ||
+            "",
+        lng: flng,
+        lat: flat,
+        mapboxId: props.mapbox_id || top.id,
+        raw: top,
+    };
+}
+
 // Resolve the nearest real POI for a given canonical category id, near a real
 // coordinate. Returns the closest result or null.
 export async function findNearestPOI({
     category,
     alternatives = [],
+    searchQuery,
+    searchQueryCategory,
+    excludeKeywords = [],
     lng,
     lat,
     limit = 8,
     signal,
 }) {
     if (!hasMapboxToken()) throw new Error("Mapbox token missing");
+
+    // 1. If a text query is provided, perform a targeted search filtered by category
+    if (searchQuery) {
+        const url = new URL(`${SEARCH_BASE}/search`);
+        url.searchParams.set("q", searchQuery);
+        url.searchParams.set("access_token", TOKEN);
+        url.searchParams.set("proximity", `${lng},${lat}`);
+        url.searchParams.set("limit", String(limit));
+        url.searchParams.set("language", "en");
+        if (searchQueryCategory) {
+            url.searchParams.set("category", searchQueryCategory);
+        }
+
+        try {
+            const res = await fetch(url.toString(), { signal });
+            if (res.ok) {
+                const data = await res.json();
+                const features = (data && data.features) || [];
+                if (features.length) {
+                    const parsed = processFeatures(features, lng, lat, excludeKeywords);
+                    if (parsed) return parsed;
+                }
+            }
+        } catch (e) {
+            if (e && e.name === "AbortError") throw e;
+            console.warn("[Mapbox] Text query search failed, falling back to category search...", e);
+        }
+    }
+
+    // 2. Fallback to canonical category list search
     if (!category) return null;
     const candidates = [category, ...alternatives];
 
@@ -41,34 +119,11 @@ export async function findNearestPOI({
         const data = await res.json();
         const features = (data && data.features) || [];
         if (!features.length) continue;
-        // Closest by straight-line distance for selection (route follows).
-        const enriched = features
-            .filter((f) => f && f.geometry && f.geometry.coordinates)
-            .map((f) => {
-                const [flng, flat] = f.geometry.coordinates;
-                const dx = (flng - lng) * 111000 * Math.cos((lat * Math.PI) / 180);
-                const dy = (flat - lat) * 111000;
-                return { f, sq: dx * dx + dy * dy };
-            })
-            .sort((a, b) => a.sq - b.sq);
-        if (!enriched.length) continue;
-        const top = enriched[0].f;
-        const [flng, flat] = top.geometry.coordinates;
-        const props = top.properties || {};
-        return {
-            name: props.name || props.name_preferred || "Unknown place",
-            address:
-                props.address ||
-                (props.context && props.context.address && props.context.address.name) ||
-                props.full_address ||
-                props.place_formatted ||
-                "",
-            lng: flng,
-            lat: flat,
-            mapboxId: props.mapbox_id || top.id,
-            canonical,
-            raw: top,
-        };
+
+        const parsed = processFeatures(features, lng, lat, excludeKeywords);
+        if (parsed) {
+            return { ...parsed, canonical };
+        }
     }
     return null;
 }

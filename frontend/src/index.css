@@ -3,244 +3,448 @@
 @tailwind utilities;
 
 :root {
-    color-scheme: dark;
+  color-scheme: dark;
 }
 
 html,
 body,
 #root {
-    height: 100%;
-    background: #08080a;
-    color: #ffffff;
+  height: 100%;
+  background: #08080a;
+  color: #ffffff;
 }
 
 body {
-    margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
-        "Helvetica Neue", system-ui, sans-serif;
-    font-feature-settings:
-        "ss01" on,
-        "cv11" on;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overscroll-behavior: none;
-    -webkit-tap-highlight-color: transparent;
-    text-rendering: optimizeLegibility;
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", system-ui, sans-serif;
+  font-feature-settings:
+    "ss01" on,
+    "cv11" on;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
 }
 
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 /* Belt-and-suspenders: the badge is also removed from the DOM by JS on mount;
  * this hides it instantly until that runs. */
 #emergent-badge {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 @layer base {
-    :root {
-        --background: 240 6% 4%;
-        --foreground: 0 0% 100%;
-        --card: 240 6% 6%;
-        --card-foreground: 0 0% 100%;
-        --popover: 240 6% 6%;
-        --popover-foreground: 0 0% 100%;
-        --primary: 158 64% 40%;
-        --primary-foreground: 0 0% 100%;
-        --secondary: 240 4% 10%;
-        --secondary-foreground: 0 0% 100%;
-        --muted: 240 4% 10%;
-        --muted-foreground: 0 0% 60%;
-        --accent: 158 64% 40%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 60% 50%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 0 0% 100% / 0.08;
-        --input: 0 0% 100% / 0.08;
-        --ring: 158 64% 40%;
-        --radius: 1rem;
-    }
+  :root {
+    --background: 240 6% 4%;
+    --foreground: 0 0% 100%;
+    --card: 240 6% 6%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 6% 6%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 158 64% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 4% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 158 64% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.08;
+    --ring: 158 64% 40%;
+    --radius: 1rem;
+  }
 }
 
 /* Glass primitives */
 .tg-glass {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 .tg-glass-strong {
-    background: rgba(20, 20, 24, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(36px) saturate(160%);
-    -webkit-backdrop-filter: blur(36px) saturate(160%);
-    box-shadow:
-        inset 0 1px 1px rgba(255, 255, 255, 0.08),
-        0 16px 40px rgba(0, 0, 0, 0.6);
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+  background: rgba(20, 20, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(36px) saturate(160%);
+  -webkit-backdrop-filter: blur(36px) saturate(160%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.08),
+    0 16px 40px rgba(0, 0, 0, 0.6);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 .tg-grass-glow {
-    background:
-        radial-gradient(
-            120% 100% at 50% 0%,
-            rgba(16, 185, 129, 0.16) 0%,
-            rgba(16, 185, 129, 0.04) 45%,
-            rgba(16, 185, 129, 0) 70%
-        ),
-        rgba(8, 16, 12, 0.6);
-    border: 1px solid rgba(16, 185, 129, 0.22);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
-    box-shadow:
-        inset 0 1px 1px rgba(16, 185, 129, 0.18),
-        0 0 60px -20px rgba(16, 185, 129, 0.45);
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+  background:
+    radial-gradient(
+      120% 100% at 50% 0%,
+      rgba(16, 185, 129, 0.16) 0%,
+      rgba(16, 185, 129, 0.04) 45%,
+      rgba(16, 185, 129, 0) 70%
+    ),
+    rgba(8, 16, 12, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow:
+    inset 0 1px 1px rgba(16, 185, 129, 0.18),
+    0 0 60px -20px rgba(16, 185, 129, 0.45);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 .tg-rose-glow {
-    background:
-        radial-gradient(
-            120% 100% at 50% 0%,
-            rgba(244, 63, 94, 0.1) 0%,
-            rgba(244, 63, 94, 0.02) 45%,
-            rgba(244, 63, 94, 0) 70%
-        ),
-        rgba(10, 8, 8, 0.6);
-    border: 1px solid rgba(244, 63, 94, 0.18);
-    backdrop-filter: blur(28px) saturate(160%);
-    -webkit-backdrop-filter: blur(28px) saturate(160%);
-    box-shadow:
-        inset 0 1px 1px rgba(244, 63, 94, 0.12),
-        0 0 60px -20px rgba(244, 63, 94, 0.25);
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+  background:
+    radial-gradient(
+      120% 100% at 50% 0%,
+      rgba(244, 63, 94, 0.1) 0%,
+      rgba(244, 63, 94, 0.02) 45%,
+      rgba(244, 63, 94, 0) 70%
+    ),
+    rgba(10, 8, 8, 0.6);
+  border: 1px solid rgba(244, 63, 94, 0.18);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  box-shadow:
+    inset 0 1px 1px rgba(244, 63, 94, 0.12),
+    0 0 60px -20px rgba(244, 63, 94, 0.25);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 .tg-ambient {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background:
-        radial-gradient(
-            60% 40% at 15% 0%,
-            rgba(16, 185, 129, 0.08) 0%,
-            transparent 60%
-        ),
-        radial-gradient(
-            50% 35% at 90% 100%,
-            rgba(56, 189, 248, 0.05) 0%,
-            transparent 60%
-        ),
-        radial-gradient(
-            80% 60% at 50% 50%,
-            rgba(255, 255, 255, 0.015) 0%,
-            transparent 70%
-        );
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      60% 40% at 15% 0%,
+      rgba(16, 185, 129, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      50% 35% at 90% 100%,
+      rgba(56, 189, 248, 0.05) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      80% 60% at 50% 50%,
+      rgba(255, 255, 255, 0.015) 0%,
+      transparent 70%
+    );
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 .tg-noise::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.04;
-    mix-blend-mode: overlay;
-    background-image: radial-gradient(
-        rgba(255, 255, 255, 0.6) 0.5px,
-        transparent 0.5px
-    );
-    background-size: 3px 3px;
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.6) 0.5px,
+    transparent 0.5px
+  );
+  background-size: 3px 3px;
 }
 
 /* Safe area helpers */
 .pt-safe {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
 }
 .pb-safe {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
 }
 
 /* Compass rose ticks */
 .tg-tick {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    width: 1px;
-    height: 100%;
-    transform-origin: 50% 50%;
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  transform-origin: 50% 50%;
 }
 .tg-tick::before {
-    content: "";
-    display: block;
-    width: 1px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.18);
+  content: "";
+  display: block;
+  width: 1.5px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.15);
 }
 .tg-tick--major::before {
-    height: 14px;
-    background: rgba(255, 255, 255, 0.45);
+  width: 2px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+/* Highlight North tick in green with prominent double-glow */
+.tg-tick:first-child::before {
+  background: #10b981;
+  box-shadow:
+    0 0 8px #10b981,
+    0 0 16px rgba(16, 185, 129, 0.5);
+}
+
+/* Outer and Inner Compass Rings with high-fidelity instrument dial details */
+.tg-compass-ring-outer {
+  border: 2.5px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 0 0 2.5px rgba(255, 255, 255, 0.06),
+    /* Concentric Ring Line 2 (Outer companion) */ 0 0 0 6px
+      rgba(255, 255, 255, 0.02),
+    /* Concentric Ring Line 3 (Outer hairline) */ inset 0 0 0 2.5px
+      rgba(255, 255, 255, 0.06),
+    /* Concentric Ring Line 4 (Inner companion) */ inset 0 0 0 7px
+      rgba(255, 255, 255, 0.02),
+    /* Concentric Ring Line 5 (Inner hairline) */ 0 0 12px
+      rgba(255, 255, 255, 0.02),
+    inset 0 0 12px rgba(255, 255, 255, 0.02);
+  background: radial-gradient(
+    circle,
+    transparent 65%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  pointer-events: none;
+}
+
+/* Beautiful micro-detail ticks on the outer ring itself using repeating conic gradient */
+.tg-compass-ring-outer::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  /* Dense ticks every 2 degrees (180 tick lines total) */
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.22) 0deg 0.4deg,
+    transparent 0.4deg 2deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 94%, black 94.5%);
+  mask: radial-gradient(circle, transparent 94.5%, black 94.5%);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+/* Fine reticle crosshairs that line up with cardinal points and medium ticks */
+.tg-compass-ring-outer::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: 
+        /* Medium ticks every 10 degrees (longer tick lines) */
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(255, 255, 255, 0.32) 0deg 0.6deg,
+      transparent 0.6deg 10deg
+    ),
+    /* Crosshairs (vertical and horizontal lines) */
+    linear-gradient(
+        to right,
+        transparent calc(50% - 0.5px),
+        rgba(255, 255, 255, 0.1) calc(50% - 0.5px),
+        rgba(255, 255, 255, 0.1) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.1) calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.1) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 72%,
+    black 72.5%,
+    black 96.5%,
+    transparent 97%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 72%,
+    black 72.5%,
+    black 96.5%,
+    transparent 97%
+  );
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.tg-compass-ring-inner {
+  border: 1px dashed rgba(255, 255, 255, 0.16) !important;
+  box-shadow:
+    inset 0 0 10px rgba(255, 255, 255, 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.04); /* additional companion line outside inner ring */
+  background: radial-gradient(
+    circle,
+    transparent 80%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  pointer-events: none;
+}
+
+/* Beautiful central crosshairs reticle extension with gap for needle */
+.tg-compass-ring-inner::after {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.06) calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.06) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.06) calc(50% - 0.5px),
+      rgba(255, 255, 255, 0.06) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    );
+  -webkit-mask: radial-gradient(
+    circle,
+    transparent 40%,
+    black 41%,
+    black 98%,
+    transparent 99%
+  );
+  mask: radial-gradient(
+    circle,
+    transparent 40%,
+    black 41%,
+    black 98%,
+    transparent 99%
+  );
+  pointer-events: none;
+  opacity: 0.65;
 }
 
 /* Pulse */
 @keyframes tg-pulse {
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.7;
-    }
-    50% {
-        transform: scale(1.6);
-        opacity: 0;
-    }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 .tg-pulse {
-    animation: tg-pulse 2.4s ease-out infinite;
+  animation: tg-pulse 2.4s ease-out infinite;
 }
 
 @keyframes tg-breath {
-    0%,
-    100% {
-        opacity: 0.55;
-    }
-    50% {
-        opacity: 1;
-    }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .tg-breath {
-    animation: tg-breath 2.6s ease-in-out infinite;
+  animation: tg-breath 2.6s ease-in-out infinite;
 }
 
 /* Mapbox dark overrides */
 .mapboxgl-ctrl-attrib,
 .mapboxgl-ctrl-logo {
-    opacity: 0.35;
-    filter: invert(1) hue-rotate(180deg) brightness(0.6);
+  opacity: 0.35;
+  filter: invert(1) hue-rotate(180deg) brightness(0.6);
 }
 .mapboxgl-ctrl-bottom-left,
 .mapboxgl-ctrl-bottom-right {
-    pointer-events: none;
+  pointer-events: none;
 }
 .mapboxgl-canvas {
-    outline: none;
+  outline: none;
 }
 
 /* Disable text selection for chrome elements */
 .tg-no-select {
-    user-select: none;
-    -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* App shell — must be relative so absolute tab wrappers anchor to it */
+.App {
+  position: relative;
+  min-height: 100dvh;
+  background: #08080a;
+  color: #fff;
+  overflow: hidden;
+}
+
+/* ── Performance: safe GPU compositing hints ─────────────────────────────
+   Only animate opacity & transform — the two properties browsers can
+   composite on the GPU without triggering layout or paint. */
+
+/* Framer Motion tab-page wrappers get an isolated compositor layer */
+.App > div[style*="opacity"],
+.App > div[style*="transform"] {
+  will-change: opacity, transform;
+}
+
+/* ── touch-action: manipulation removes the 300ms tap delay on mobile
+   without breaking any scroll behaviour. */
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* ── touch-action: pan-y lets the browser handle scroll natively,
+   critical for 60fps on long lists and the map view. */
+[data-testid="insights-view"],
+.tg-scroll {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Mapbox canvas lives on its own GPU layer */
+.mapboxgl-canvas {
+  will-change: transform;
+}
+
+/* ── Accessibility: respect reduced-motion preference ──────────────────────
+   Collapses all animations to near-instant for users who need it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .tg-pulse,
+  .tg-breath {
+    animation: none;
+  }
 }

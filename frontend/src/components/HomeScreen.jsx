@@ -1,7 +1,8 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CATEGORIES } from "@/lib/categories";
+import { MODES, getCategoryByKey } from "@/lib/categories";
 import { haptics } from "@/lib/haptics";
+import { useApp } from "@/lib/AppState";
 
 const cardSpring = { type: "spring", stiffness: 380, damping: 28, mass: 0.7 };
 
@@ -23,10 +24,10 @@ function HeroCard({ category, onSelect }) {
             }}
         >
             <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 8px ${category.glow || category.accent}66)` }}>
-                {category.svg}
+                {category.Icon && <category.Icon size={32} strokeWidth={2.2} style={{ color: category.accent }} />}
             </div>
             <div className="text-[20px] font-black tracking-tight text-white">
-                {category.label}
+                {category.key === "grass" ? "Touch Grass" : category.label}
             </div>
         </motion.button>
     );
@@ -34,7 +35,6 @@ function HeroCard({ category, onSelect }) {
 
 function StandardCard({ category, onSelect }) {
     if (!category) return null;
-    const isRandom = category.key === "random";
     return (
         <motion.button
             data-testid={`category-${category.key}`}
@@ -44,12 +44,12 @@ function StandardCard({ category, onSelect }) {
             }}
             whileTap={{ scale: 0.96 }}
             transition={cardSpring}
-            className="group relative flex h-full w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select !border-[1px] !border-slate-200/35 !shadow-[0_0_12px_rgba(203,213,225,0.4),inset_0_0_8px_rgba(255,255,255,0.3)]"
+            className="group relative flex aspect-[1.35] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl tg-glass tg-no-select !border-[1px] !border-slate-200/35 !shadow-[0_0_12px_rgba(203,213,225,0.4),inset_0_0_8px_rgba(255,255,255,0.3)]"
         >
-            <div style={{ width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 4px ${category.glow || category.accent}4d)` }}>
-                {category.svg}
+            <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", filter: `drop-shadow(0 0 6px ${category.glow || category.accent}66)` }}>
+                {category.Icon && <category.Icon size={24} strokeWidth={2.2} style={{ color: category.accent }} />}
             </div>
-            <div className="text-[12.5px] font-semibold tracking-tight text-white/90">
+            <div className="text-[13px] font-extrabold tracking-tight text-white">
                 {category.label}
             </div>
         </motion.button>
@@ -57,13 +57,15 @@ function StandardCard({ category, onSelect }) {
 }
 
 export default function HomeScreen({ onSelectCategory }) {
-    const grass = CATEGORIES.find((c) => c.key === "grass");
-    const rest = CATEGORIES.filter((c) => c.key !== "grass");
+    const { appMode } = useApp();
+    const config = MODES[appMode] || MODES.explore;
+    const grass = getCategoryByKey(config.mainKey);
+    const rest = config.gridKeys.map((k) => getCategoryByKey(k)).filter(Boolean);
 
     return (
         <div
             data-testid="home-screen"
-            className="relative flex h-[100dvh] w-full flex-col px-5 pt-safe pb-safe justify-center tg-no-select"
+            className="relative flex h-[100dvh] w-full flex-col overflow-hidden px-5 pt-safe pb-[110px] justify-center tg-no-select"
         >
             <div className="tg-ambient" />
 
@@ -86,18 +88,18 @@ export default function HomeScreen({ onSelectCategory }) {
 
             <motion.div
                 initial={{ opacity: 0, y: 32 }}
-                animate={{ opacity: 1, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{
                     duration: 0.7,
                     delay: 0.08,
                     ease: [0.32, 0.72, 0, 1],
                 }}
-                className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 pb-8 max-w-[400px] mx-auto w-full"
+                className="relative z-10 flex min-h-0 flex-1 flex-col gap-3 pb-8 max-w-[400px] mx-auto w-full mt-2"
             >
-                <div className="flex-[1.5] w-full min-h-[140px]">
+                <div className="flex-[1.2] w-full min-h-[140px]">
                     <HeroCard category={grass} onSelect={onSelectCategory} />
                 </div>
-                <div className="grid flex-[3] min-h-0 grid-cols-3 grid-rows-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 mt-0">
                     {rest.map((cat) => (
                         <StandardCard
                             key={cat.key}

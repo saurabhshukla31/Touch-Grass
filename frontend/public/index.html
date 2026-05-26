@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#08080A" />
     <meta name="description" content="Touch Grass" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -11,6 +11,10 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="Touch Grass" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Preconnect to Mapbox for faster map tile loads -->
+    <link rel="preconnect" href="https://api.mapbox.com" crossorigin />
+    <link rel="preconnect" href="https://events.mapbox.com" crossorigin />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <style>
       html,

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import "@/App.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
 import { AppProvider, useApp } from "@/lib/AppState";
@@ -9,6 +8,7 @@ import { saveSession } from "@/lib/db";
 import { haversineMeters, MODE_MAP } from "@/lib/geo";
 import { haptics } from "@/lib/haptics";
 import { useSessionTracker } from "@/lib/sessionTracker";
+import { Compass, Map as MapIcon } from "lucide-react";
 
 import DesktopInterstitial from "@/components/DesktopInterstitial";
 import HomeScreen from "@/components/HomeScreen";
@@ -19,6 +19,7 @@ import InsightsView from "@/components/InsightsView";
 import SettingsView from "@/components/SettingsView";
 import RandomReveal from "@/components/RandomReveal";
 import GrassVerification from "@/components/GrassVerification";
+import { checkAppVersion } from "@/lib/versionCheck";
 
 // Override flags for testing / dev preview.
 function isForcedMobile() {
@@ -92,6 +93,35 @@ function ResolvingOverlay({ category }) {
         Reading your real location · live route incoming.
       </div>
     </motion.div>
+  );
+}
+
+function NoActiveSessionView({ tab, onStart }) {
+  const Icon = tab === "compass" ? Compass : MapIcon;
+  return (
+    <div className="relative flex h-[100dvh] w-full flex-col px-5 pt-safe justify-center items-center text-center tg-no-select">
+      <div className="tg-ambient" />
+      <div className="relative z-10 flex flex-col items-center max-w-sm rounded-[32px] p-8 bg-white/[0.03] shadow-2xl ring-1 ring-white/10 backdrop-blur-xl gap-6">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
+          <Icon size={32} strokeWidth={1.8} />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-white tracking-tight">No Active Session</h2>
+          <p className="mt-2 text-xs leading-relaxed text-white/45">
+            You need to start a journey to use the {tab === "compass" ? "Compass" : "Map"}. Go to the Home tab and select a category.
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            haptics.tap();
+            onStart();
+          }}
+          className="w-full flex h-12 items-center justify-center rounded-2xl bg-emerald-500 text-black font-black tracking-wide shadow-[0_8px_30px_-10px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400 active:scale-95 transition-transform"
+        >
+          Go to Home
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -176,6 +206,9 @@ function Shell() {
         found = await findNearestPOI({
           category: c.searchCanonical,
           alternatives: c.searchAlternatives,
+          searchQuery: c.searchQuery,
+          searchQueryCategory: c.searchQueryCategory,
+          excludeKeywords: c.excludeKeywords,
           lng: loc.lng,
           lat: loc.lat,
         });
@@ -296,55 +329,77 @@ function Shell() {
     <div className="App">
       <div className="tg-ambient" />
 
+      {/* Tab views — GPU-composited fade+slide, spring physics for buttery motion */}
       <AnimatePresence mode="wait">
-        {/* Show home only when idle AND active tab is compass/map (the "home" slot) */}
-        {!sessionActive && (tab === "compass" || tab === "map") && (
+        {tab === "home" && (
           <motion.div
             key="home"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            style={{ willChange: "opacity, transform" }}
+            className="absolute inset-0"
           >
             <HomeScreen onSelectCategory={handleSelectCategory} />
           </motion.div>
         )}
 
-        {sessionActive && tab === "compass" && (
+        {tab === "compass" && (
           <motion.div
             key="compass"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            style={{ willChange: "opacity, transform" }}
+            className="absolute inset-0"
           >
-            <CompassView onCancel={handleEndSession} />
+            {sessionActive ? (
+              <CompassView onCancel={handleEndSession} />
+            ) : (
+              <NoActiveSessionView
+                tab="compass"
+                onStart={() => update({ currentTab: "home" })}
+              />
+            )}
           </motion.div>
         )}
 
-        {sessionActive && tab === "map" && (
+        {tab === "map" && (
           <motion.div
             key="map"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            style={{ willChange: "opacity, transform" }}
+            className="absolute inset-0"
           >
-            <MapView
-              onEnd={handleEndSession}
-              tracker={tracker}
-              plannedDistanceRef={plannedDistanceRef}
-            />
+            {sessionActive ? (
+              <MapView
+                onEnd={handleEndSession}
+                tracker={tracker}
+                plannedDistanceRef={plannedDistanceRef}
+              />
+            ) : (
+              <NoActiveSessionView
+                tab="map"
+                onStart={() => update({ currentTab: "home" })}
+              />
+            )}
           </motion.div>
         )}
 
         {tab === "insights" && (
           <motion.div
             key="insights"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            style={{ willChange: "opacity, transform" }}
+            className="absolute inset-0 overflow-y-auto"
           >
             <InsightsView />
           </motion.div>
@@ -353,33 +408,26 @@ function Shell() {
         {tab === "settings" && (
           <motion.div
             key="settings"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
+            style={{ willChange: "opacity, transform" }}
+            className="absolute inset-0"
           >
             <SettingsView />
           </motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {/* Show TabBar when session is active, or when viewing insights/settings */}
-        {(sessionActive || tab === "insights" || tab === "settings") && (
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 32 }}
-            transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            className="fixed inset-x-0 bottom-0 z-50 pointer-events-none"
-          >
-            <TabBar
-              currentTab={tab}
-              onChange={(k) => update({ currentTab: k })}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+      {/* TabBar is permanent — no AnimatePresence needed, saves a compositor layer */}
+      <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
+        <TabBar
+          currentTab={tab}
+          onChange={(k) => update({ currentTab: k })}
+        />
+      </div>
 
       <AnimatePresence>
         {randomCategory && <RandomReveal category={randomCategory} />}
@@ -429,8 +477,11 @@ function App() {
   const isMobile = useIsMobile();
   // Remove the platform "Made with Emergent" badge — it overlaps our floating
   // tab bar and clashes with the calm aesthetic. Uses a small MutationObserver
-  // so the badge stays gone even if injected after mount.
+  // so the badge stays gone even if injected after mount. Also check the deployed
+  // app version on startup to clear old caches/service worker and migrate if needed.
   useEffect(() => {
+    checkAppVersion();
+
     const remove = () => {
       const el = document.getElementById("emergent-badge");
       if (el && el.parentNode) el.parentNode.removeChild(el);

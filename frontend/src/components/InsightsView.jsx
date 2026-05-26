@@ -355,7 +355,7 @@ export default function InsightsView() {
     return (
         <div
             data-testid="insights-view"
-            className="relative min-h-[100dvh] w-full overflow-y-auto px-5 pt-safe pb-40 tg-no-select"
+            className="relative h-[100dvh] w-full overflow-y-auto px-5 pt-safe pb-40 tg-no-select"
         >
             <div className="tg-ambient" />
             <motion.header
