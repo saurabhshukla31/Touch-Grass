@@ -50,7 +50,7 @@ const MAP_STYLE = "mapbox://styles/mapbox/dark-v11";
 
 const STEP_ADVANCE_METERS = 25;
 
-export default function MapView({ onEnd }) {
+export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
     const {
         userLocation,
         destination,
@@ -602,6 +602,11 @@ export default function MapView({ onEnd }) {
                 setRouteError(null);
                 setCurrentStepIdx(0);
 
+                // Capture planned distance for session saving
+                if (plannedDistanceRef && r.distance != null) {
+                    plannedDistanceRef.current = r.distance; // meters
+                }
+
                 lastFetchRef.current = {
                     fromLat: userLocation.lat,
                     fromLng: userLocation.lng,
@@ -784,6 +789,43 @@ export default function MapView({ onEnd }) {
                 if (map.getLayer(CASING)) map.removeLayer(CASING);
                 if (map.getLayer(GLOW)) map.removeLayer(GLOW);
                 map.removeSource(SRC);
+            }
+        } catch { }
+
+        // ── Draw actual traveled path from GPS tracker ──
+        const TSRC = "tg-traveled";
+        const TLINE = "tg-traveled-line";
+        try {
+            const pts = tracker?.routePoints;
+            if (pts && pts.length >= 2) {
+                const data = {
+                    type: "Feature",
+                    properties: {},
+                    geometry: {
+                        type: "LineString",
+                        coordinates: pts.map((p) => [p.lng, p.lat]),
+                    },
+                };
+                if (map.getSource(TSRC)) {
+                    map.getSource(TSRC).setData(data);
+                } else {
+                    map.addSource(TSRC, { type: "geojson", data });
+                    map.addLayer({
+                        id: TLINE,
+                        type: "line",
+                        source: TSRC,
+                        layout: { "line-cap": "round", "line-join": "round" },
+                        paint: {
+                            "line-color": "#60a5fa",
+                            "line-width": 3,
+                            "line-opacity": 0.7,
+                            "line-dasharray": [2, 2],
+                        },
+                    });
+                }
+            } else if (map.getSource(TSRC)) {
+                if (map.getLayer(TLINE)) map.removeLayer(TLINE);
+                map.removeSource(TSRC);
             }
         } catch { }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1091,6 +1133,38 @@ export default function MapView({ onEnd }) {
                             </div>
                         </div>
                     </div>
+
+                    {/* ── Live tracking stats (visible during navigation) ── */}
+                    {navStarted && tracker && (
+                        <div className="mt-2 flex items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2">
+                            <div className="flex-1">
+                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-blue-400/70">
+                                    Travelled
+                                </div>
+                                <div className="text-sm font-black tracking-tight text-white">
+                                    {(tracker.actualDistanceKm).toFixed(2)} km
+                                </div>
+                            </div>
+                            <div className="h-6 w-px bg-white/10" />
+                            <div className="flex-1">
+                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                    Planned Route
+                                </div>
+                                <div className="text-sm font-bold tracking-tight text-white/60">
+                                    {route ? formatDistance(route.distance, units) : "—"}
+                                </div>
+                            </div>
+                            <div className="h-6 w-px bg-white/10" />
+                            <div>
+                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                    Time
+                                </div>
+                                <div className="text-sm font-bold tracking-tight text-white/60">
+                                    {formatDuration(tracker.durationSec)}
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {!navStarted && (
                         <div className="mt-3 flex gap-1.5 rounded-xl bg-white/[0.04] p-1">

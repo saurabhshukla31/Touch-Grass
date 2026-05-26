@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import "@/App.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
@@ -6,8 +6,9 @@ import { AppProvider, useApp } from "@/lib/AppState";
 import { CATEGORIES, RANDOM_POOL, getCategoryByKey } from "@/lib/categories";
 import { findNearestPOI, hasMapboxToken } from "@/lib/mapbox";
 import { saveSession } from "@/lib/db";
-import { haversineMeters } from "@/lib/geo";
+import { haversineMeters, MODE_MAP } from "@/lib/geo";
 import { haptics } from "@/lib/haptics";
+import { useSessionTracker } from "@/lib/sessionTracker";
 
 import DesktopInterstitial from "@/components/DesktopInterstitial";
 import HomeScreen from "@/components/HomeScreen";
@@ -106,7 +107,11 @@ function Shell() {
     currentTab,
     resetSession,
     units,
+    travelMode,
   } = useApp();
+
+  const tracker = useSessionTracker();
+  const plannedDistanceRef = useRef(null);
 
   const [resolveError, setResolveError] = useState(null);
   const [randomCategory, setRandomCategory] = useState(null);
@@ -192,6 +197,12 @@ function Shell() {
       // eslint-disable-next-line no-console
       console.log("[tg] activating session →", found.name);
       haptics.success();
+
+      // Start GPS distance tracker
+      const sessionMode = MODE_MAP[travelMode] || "walk";
+      tracker.start(sessionMode);
+      plannedDistanceRef.current = null;
+
       update({
         mode: "active",
         userLocation: loc,
@@ -203,6 +214,7 @@ function Shell() {
         },
         currentTab: "compass",
         navStarted: false,
+        sessionStartedAt: Date.now(),
       });
       startWatchingLocation();
     } catch (e) {
@@ -222,12 +234,18 @@ function Shell() {
   }
 
   const handleEndSession = async () => {
+    // Stop GPS tracker and collect results
+    const trackResult = tracker.stop();
+
     if (destination && userLocation && selectedCategory) {
-      const dist = haversineMeters(userLocation, destination);
+      const straightLine = haversineMeters(userLocation, destination);
+      const plannedKm = plannedDistanceRef.current;
+
       try {
         await saveSession({
           id: `${Date.now()}`,
-          startedAt: Date.now(),
+          startedAt: trackResult.startedAt || Date.now(),
+          endedAt: trackResult.endedAt || Date.now(),
           destinationName: destination.name,
           destinationAddress: destination.address,
           destinationLng: destination.lng,
@@ -237,8 +255,27 @@ function Shell() {
           iconKey: selectedCategory.iconKey,
           accent: selectedCategory.accent,
           accentSoft: selectedCategory.accentSoft,
-          distance: dist,
+
+          // ── Distance tracking v2 ──
+          mode: trackResult.mode || MODE_MAP[travelMode] || "walk",
+          plannedDistanceKm: plannedKm != null ? +(plannedKm / 1000).toFixed(3) : null,
+          actualDistanceKm: trackResult.actualDistanceKm || 0,
+          durationSec: trackResult.durationSec || 0,
+          averageSpeed: trackResult.averageSpeed || 0,
+
+          routePoints: trackResult.routePoints || [],
+
+          // Legacy compat (for old InsightsView consumers)
+          distance: straightLine,
           viaRandom: !!destination.viaRandom,
+
+          destination: {
+            name: destination.name,
+            lat: destination.lat,
+            lng: destination.lng,
+            address: destination.address,
+            category: selectedCategory.key,
+          },
         });
       } catch {
         /* ignore */
@@ -293,7 +330,11 @@ function Shell() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <MapView onEnd={handleEndSession} />
+            <MapView
+              onEnd={handleEndSession}
+              tracker={tracker}
+              plannedDistanceRef={plannedDistanceRef}
+            />
           </motion.div>
         )}
 

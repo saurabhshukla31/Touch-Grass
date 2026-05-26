@@ -21,6 +21,7 @@ const initial = {
     userLocation: null, // { lat, lng, accuracy, heading, speed, ts }
     travelMode: "walking",
     navStarted: false,
+    sessionStartedAt: null, // Date.now() when session became active
     units: "metric",
     hapticsEnabled: true,
     mapViewMode: "2d",
@@ -351,6 +352,7 @@ export function AppProvider({ children }) {
             selectedCategory: null,
             destination: null,
             navStarted: false,
+            sessionStartedAt: null,
             homeOverlay: null,
             currentTab: "insights",
             pillOpen: false,

@@ -1,31 +1,36 @@
 import { openDB } from "idb";
 
 const DB_NAME = "touch-grass";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise = null;
 const getDB = () => {
     if (!dbPromise) {
         dbPromise = openDB(DB_NAME, DB_VERSION, {
-            upgrade(db) {
-                if (!db.objectStoreNames.contains("sessions")) {
+            upgrade(db, oldVersion) {
+                // ── v1 stores ──
+                if (oldVersion < 1) {
                     const store = db.createObjectStore("sessions", {
                         keyPath: "id",
                     });
                     store.createIndex("startedAt", "startedAt");
                     store.createIndex("category", "category");
-                }
-                if (!db.objectStoreNames.contains("settings")) {
+
                     db.createObjectStore("settings");
-                }
-                if (!db.objectStoreNames.contains("photos")) {
                     db.createObjectStore("photos", { keyPath: "id" });
                 }
+
+                // ── v2: new fields on sessions ──
+                // No new indexes needed — actualDistanceKm, mode, etc. are
+                // simple properties. Existing v1 session docs remain readable;
+                // they'll just lack the new fields until the next session save.
             },
         });
     }
     return dbPromise;
 };
+
+
 
 export async function saveSession(session) {
     const db = await getDB();

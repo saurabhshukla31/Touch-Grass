@@ -60,3 +60,77 @@ export function formatDuration(seconds) {
     const m = Math.round((seconds % 3600) / 60);
     return m ? `${h}h ${m}m` : `${h}h`;
 }
+
+export function formatSpeed(kmh, units = "metric") {
+    if (kmh == null || !Number.isFinite(kmh)) return "—";
+    if (units === "imperial") return `${(kmh * 0.621371).toFixed(1)} mph`;
+    return `${kmh.toFixed(1)} km/h`;
+}
+
+// Map internal travel mode keys to session mode labels
+export const MODE_MAP = {
+    walking: "walk",
+    cycling: "bike",
+    driving: "car",
+};
+
+export const MODE_LABELS = {
+    walk: "Walk",
+    bike: "Bike",
+    car: "Car",
+};
+
+/**
+ * Calculate current streak of consecutive days with at least one session.
+ * @param {Array} sessions — sorted newest-first
+ * @returns {{ current: number, longest: number }}
+ */
+export function calculateStreaks(sessions) {
+    if (!sessions.length) return { current: 0, longest: 0 };
+
+    // Collect unique active day timestamps (midnight-normalized)
+    const daySet = new Set();
+    sessions.forEach((s) => {
+        if (!s.startedAt) return;
+        const d = new Date(s.startedAt);
+        d.setHours(0, 0, 0, 0);
+        daySet.add(d.getTime());
+    });
+
+    const days = [...daySet].sort((a, b) => b - a); // newest first
+    const ONE_DAY = 86400000;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+
+    // Current streak: starts from today or yesterday
+    let current = 0;
+    let check = todayMs;
+    // Allow starting from today or yesterday
+    if (days[0] === todayMs || days[0] === todayMs - ONE_DAY) {
+        check = days[0];
+        for (const d of days) {
+            if (d === check) {
+                current++;
+                check -= ONE_DAY;
+            } else if (d < check) {
+                break;
+            }
+        }
+    }
+
+    // Longest streak ever
+    let longest = 0;
+    let run = 1;
+    for (let i = 1; i < days.length; i++) {
+        if (days[i - 1] - days[i] === ONE_DAY) {
+            run++;
+        } else {
+            longest = Math.max(longest, run);
+            run = 1;
+        }
+    }
+    longest = Math.max(longest, run, current);
+
+    return { current, longest };
+}
