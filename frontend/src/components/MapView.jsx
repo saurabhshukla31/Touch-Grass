@@ -62,6 +62,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         subscribeHeading,
         mapViewMode,
         navViewMode,
+        theme,
     } = useApp();
 
     const containerRef = useRef(null);
@@ -232,7 +233,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
 
             mapInstance = new mapboxgl.Map({
                 container: containerRef.current,
-                style: MAP_STYLE,
+                style: theme === "light" ? "mapbox://styles/mapbox/light-v11" : MAP_STYLE,
                 center: [start.lng, start.lat],
                 zoom: 15,
                 pitch: mapViewMode === "3d" ? 60 : 0,
@@ -247,6 +248,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     const layers =
                         mapInstance.getStyle().layers ?? [];
 
+                    const isLight = theme === "light";
+
                     layers.forEach((l) => {
                         if (!l) return;
 
@@ -258,7 +261,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 mapInstance.setPaintProperty(
                                     l.id,
                                     "line-color",
-                                    "#4D4E58"
+                                    isLight ? "#e5e7eb" : "#4D4E58"
                                 );
                             } catch { }
                         }
@@ -268,13 +271,13 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 mapInstance.setPaintProperty(
                                     l.id,
                                     "text-color",
-                                    "rgba(255,255,255,0.62)"
+                                    isLight ? "rgba(15,23,42,0.8)" : "rgba(255,255,255,0.62)"
                                 );
 
                                 mapInstance.setPaintProperty(
                                     l.id,
                                     "text-halo-color",
-                                    "rgba(0,0,0,0.85)"
+                                    isLight ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)"
                                 );
                             } catch { }
                         }
@@ -294,7 +297,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                             type: "fill-extrusion",
                             minzoom: 15,
                             paint: {
-                                "fill-extrusion-color": "#111218",
+                                "fill-extrusion-color": isLight ? "#e2e8f0" : "#111218",
                                 "fill-extrusion-height": [
                                     "interpolate",
                                     ["linear"],
@@ -374,7 +377,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             setMapReady(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tokenAvailable]);
+    }, [tokenAvailable, theme]);
 
     useEffect(() => {
         const map = mapRef.current;
@@ -413,8 +416,9 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 </svg>
             `;
 
+            const dotRingBorderColor = theme === "light" ? "#ffffff" : "#08080A";
             const dotRing = document.createElement("div");
-            dotRing.style.cssText = "width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.35);border:2px solid #08080A;display:flex;align-items:center;justify-content:center;z-index:2;";
+            dotRing.style.cssText = `width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.25);border:2px solid ${dotRingBorderColor};display:flex;align-items:center;justify-content:center;z-index:2;`;
             dotRing.setAttribute("data-testid", "user-marker");
 
             const innerDot = document.createElement("div");
@@ -440,9 +444,14 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 beam.style.transform = `rotate(${beamHeading}deg)`;
                 beam.style.opacity = hasHeading ? "1" : "0";
             }
+
+            const dotRing = wrap.querySelector("[data-testid='user-marker']");
+            if (dotRing) {
+                dotRing.style.borderColor = theme === "light" ? "#ffffff" : "#08080A";
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userLocation, mapReady, accentColor]);
+    }, [userLocation, mapReady, accentColor, theme]);
 
     useEffect(() => {
         const map = mapRef.current;
@@ -463,12 +472,17 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 "dest-marker"
             );
 
+            const destBg = theme === "light" ? "rgba(255,255,255,0.95)" : "rgba(20,20,24,0.85)";
+            const destBoxShadow = theme === "light" 
+                ? `0 8px 24px rgba(0,0,0,0.12), 0 0 0 4px ${accentColor}1A` 
+                : `0 8px 24px rgba(0,0,0,0.5), 0 0 0 4px ${accentColor}15`;
+
             el.style.cssText =
                 `position:relative;width:34px;height:34px;border-radius:14px;` +
-                `background:rgba(20,20,24,0.85);border:1px solid ${accentColor};` +
+                `background:${destBg};border:1px solid ${accentColor};` +
                 `display:flex;align-items:center;justify-content:center;` +
                 `backdrop-filter:blur(20px);` +
-                `box-shadow:0 8px 24px rgba(0,0,0,0.5),0 0 0 4px rgba(16,185,129,0.08);`;
+                `box-shadow:${destBoxShadow};`;
 
             const dot =
                 document.createElement("div");
@@ -516,7 +530,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 }
             }
         }
-    }, [destination, mapReady, accentColor]);
+    }, [destination, mapReady, accentColor, theme]);
 
     useEffect(() => {
         if (

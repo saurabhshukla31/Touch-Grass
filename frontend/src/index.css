@@ -10,8 +10,12 @@ html,
 body,
 #root {
   height: 100%;
-  background: #08080a;
-  color: #ffffff;
+  background: #060608;
+  color: #f2f2f7;
+}
+
+.text-white {
+  color: #f2f2f7 !important;
 }
 
 body {
@@ -69,23 +73,23 @@ body {
 
 /* Glass primitives */
 .tg-glass {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(24px) saturate(140%);
   -webkit-backdrop-filter: blur(24px) saturate(140%);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }
 
 .tg-glass-strong {
-  background: rgba(20, 20, 24, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 10, 12, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(36px) saturate(160%);
   -webkit-backdrop-filter: blur(36px) saturate(160%);
   box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.08),
-    0 16px 40px rgba(0, 0, 0, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 48px rgba(0, 0, 0, 0.5);
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }
@@ -397,8 +401,8 @@ body {
 .App {
   position: relative;
   min-height: 100dvh;
-  background: #08080a;
-  color: #fff;
+  background: #060608;
+  color: #f2f2f7;
   overflow: hidden;
 }
 
@@ -410,6 +414,28 @@ body {
 .App > div[style*="opacity"],
 .App > div[style*="transform"] {
   will-change: opacity, transform;
+}
+
+/* Buttery-Smooth interactive transitions (Apple ease-out curve) */
+button,
+a,
+.tg-glass,
+.tg-glass-strong {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, opacity, filter, backdrop-filter, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-duration: 380ms;
+}
+
+button:not([class*="motion"]),
+.tg-glass:not([class*="motion"]),
+.tg-glass-strong:not([class*="motion"]) {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform, opacity, filter, backdrop-filter, -webkit-backdrop-filter;
+}
+
+/* Tactile scale feedback on tap */
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.96) translate3d(0, 0, 0) !important;
 }
 
 /* ── touch-action: manipulation removes the 300ms tap delay on mobile
@@ -448,3 +474,293 @@ button,
     animation: none;
   }
 }
+
+/* ── Light Mode Override System ────────────────────────────────── */
+.light,
+.light body,
+.light #root,
+.light .App {
+  background: #d5d5dc !important;
+  color: #1c1c1e !important;
+}
+
+.light .tg-ambient {
+  background:
+    radial-gradient(
+      60% 40% at 15% 0%,
+      rgba(16, 185, 129, 0.04) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      50% 35% at 90% 100%,
+      rgba(56, 189, 248, 0.03) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      80% 60% at 50% 50%,
+      rgba(0, 0, 0, 0.005) 0%,
+      transparent 70%
+    ) !important;
+}
+
+.light .tg-glass {
+  background: rgba(220, 220, 228, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(24px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+.light .tg-glass-strong {
+  background: rgba(200, 200, 210, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(36px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(150%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 12px 40px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Text overrides using Apple Label Color #1c1c1e */
+.light .text-white { color: #1c1c1e !important; }
+.light .text-white\/10 { color: rgba(28, 28, 30, 0.12) !important; }
+.light .text-white\/20 { color: rgba(28, 28, 30, 0.22) !important; }
+.light .text-white\/30 { color: rgba(28, 28, 30, 0.35) !important; }
+.light .text-white\/35 { color: rgba(28, 28, 30, 0.4) !important; }
+.light .text-white\/40 { color: rgba(28, 28, 30, 0.45) !important; }
+.light .text-white\/45 { color: rgba(28, 28, 30, 0.5) !important; }
+.light .text-white\/50 { color: rgba(28, 28, 30, 0.55) !important; }
+.light .text-white\/55 { color: rgba(28, 28, 30, 0.6) !important; }
+.light .text-white\/60 { color: rgba(28, 28, 30, 0.65) !important; }
+.light .text-white\/70 { color: rgba(28, 28, 30, 0.75) !important; }
+.light .text-white\/80 { color: rgba(28, 28, 30, 0.82) !important; }
+.light .text-white\/85 { color: rgba(28, 28, 30, 0.88) !important; }
+.light .text-white\/90 { color: rgba(28, 28, 30, 0.93) !important; }
+
+/* Backgrounds & rings overrides */
+.light .bg-black\/25 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+.light .ring-1.ring-white\/10 {
+  --tw-ring-color: rgba(0, 0, 0, 0.04) !important;
+}
+.light .bg-white\/15 {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.light .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+.light .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+.light .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+.light .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+.light .ring-white\/20 {
+  --tw-ring-color: rgba(255, 255, 255, 0.4) !important;
+}
+.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+.light .border-transparent {
+  border-color: transparent !important;
+}
+.light .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Home Standard Card overrides (simplified under global tg-glass) */
+
+/* Tab bar overrides */
+.light [data-testid="tab-bar"] button > span {
+  background: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+.light [data-testid="tab-bar"] > div[aria-hidden="true"] {
+  background: linear-gradient(to top, rgba(213,213,220,0.95) 0%, rgba(213,213,220,0.6) 50%, rgba(213,213,220,0) 100%) !important;
+}
+
+/* Compass overrides */
+.light .tg-tick::before {
+  background: rgba(28, 28, 30, 0.25) !important;
+  box-shadow: 0 0 4px rgba(28, 28, 30, 0.06) !important;
+}
+.light .tg-tick--major::before {
+  background: rgba(28, 28, 30, 0.6) !important;
+  box-shadow: 0 0 6px rgba(28, 28, 30, 0.12) !important;
+}
+
+.light .tg-compass-ring-outer {
+  border: 2.5px solid rgba(28, 28, 30, 0.15) !important;
+  box-shadow:
+    0 0 0 2.5px rgba(28, 28, 30, 0.03),
+    0 0 0 6px rgba(28, 28, 30, 0.01),
+    inset 0 0 0 2.5px rgba(28, 28, 30, 0.03),
+    inset 0 0 0 7px rgba(28, 28, 30, 0.01),
+    0 0 12px rgba(28, 28, 30, 0.01),
+    inset 0 0 12px rgba(28, 28, 30, 0.01) !important;
+  background: radial-gradient(
+    circle,
+    transparent 65%,
+    rgba(28, 28, 30, 0.01) 100%
+  ) !important;
+}
+
+.light .tg-compass-ring-outer::before {
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(28, 28, 30, 0.15) 0deg 0.4deg,
+    transparent 0.4deg 2deg
+  ) !important;
+}
+
+.light .tg-compass-ring-outer::after {
+  background: 
+    repeating-conic-gradient(
+      from 0deg,
+      rgba(28, 28, 30, 0.2) 0deg 0.6deg,
+      transparent 0.6deg 10deg
+    ),
+    linear-gradient(
+        to right,
+        transparent calc(50% - 0.5px),
+        rgba(28, 28, 30, 0.06) calc(50% - 0.5px),
+        rgba(28, 28, 30, 0.06) calc(50% + 0.5px),
+        transparent calc(50% + 0.5px)
+      ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.06) calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.06) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ) !important;
+}
+
+.light .tg-compass-ring-inner {
+  border: 1px dashed rgba(28, 28, 30, 0.12) !important;
+  box-shadow:
+    inset 0 0 10px rgba(28, 28, 30, 0.01),
+    0 0 0 1px rgba(28, 28, 30, 0.01) !important;
+  background: radial-gradient(
+    circle,
+    transparent 80%,
+    rgba(28, 28, 30, 0.003) 100%
+  ) !important;
+}
+
+.light .tg-compass-ring-inner::after {
+  background:
+    linear-gradient(
+      to right,
+      transparent calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.03) calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.03) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ),
+    linear-gradient(
+      to bottom,
+      transparent calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.03) calc(50% - 0.5px),
+      rgba(28, 28, 30, 0.03) calc(50% + 0.5px),
+      transparent calc(50% + 0.5px)
+    ) !important;
+}
+
+/* Mapbox copyright layout */
+.light .mapboxgl-ctrl-attrib,
+.light .mapboxgl-ctrl-logo {
+  opacity: 0.55;
+  filter: none !important;
+}
+
+/* Overlays & Popups */
+.light .bg-\[\#08080a\] {
+  background-color: rgba(220, 220, 228, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.light [data-testid="grass-verification"] {
+  background: rgba(213, 213, 220, 0.6) !important;
+}
+
+.light [data-testid="compass-view"] .fixed {
+  background: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Settings Icon backgrounds & borders (dynamic opacity and colors) */
+.light .bg-emerald-500\/10 { background-color: rgba(16, 185, 129, 0.14) !important; }
+.light .border-emerald-500\/20 { border-color: rgba(16, 185, 129, 0.22) !important; }
+
+.light .bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.14) !important; }
+.light .border-blue-500\/20 { border-color: rgba(59, 130, 246, 0.22) !important; }
+
+.light .bg-amber-500\/10 { background-color: rgba(245, 158, 11, 0.14) !important; }
+.light .border-amber-500\/20 { border-color: rgba(245, 158, 11, 0.22) !important; }
+
+.light .bg-rose-500\/10 { background-color: rgba(244, 63, 94, 0.14) !important; }
+.light .border-rose-500\/20 { border-color: rgba(244, 63, 94, 0.22) !important; }
+
+.light .bg-violet-500\/10 { background-color: rgba(139, 92, 246, 0.14) !important; }
+.light .border-violet-500\/20 { border-color: rgba(139, 92, 246, 0.22) !important; }
+
+.light .bg-cyan-500\/10 { background-color: rgba(6, 182, 212, 0.14) !important; }
+.light .border-cyan-500\/20 { border-color: rgba(6, 182, 212, 0.22) !important; }
+
+/* Settings Icon active/inactive contrast mapping */
+.light .text-emerald-300 { color: #047857 !important; }
+.light .text-emerald-400 { color: #047857 !important; }
+.light .text-blue-300 { color: #1d4ed8 !important; }
+.light .text-amber-300 { color: #b45309 !important; }
+.light .text-rose-300 { color: #be123c !important; }
+.light .text-violet-300 { color: #6d28d9 !important; }
+.light .text-cyan-300 { color: #0e7490 !important; }
+
+.light .bg-emerald-500\/25 { background-color: rgba(16, 185, 129, 0.18) !important; }
+.light .bg-rose-500\/25 { background-color: rgba(244, 63, 94, 0.18) !important; }
+.light .bg-cyan-500\/25 { background-color: rgba(6, 182, 212, 0.18) !important; }
+.light .bg-amber-500\/25 { background-color: rgba(245, 158, 11, 0.18) !important; }
+.light .bg-violet-500\/25 { background-color: rgba(139, 92, 246, 0.18) !important; }
+
+.light .border-emerald-500\/50 { border-color: rgba(16, 185, 129, 0.4) !important; }
+.light .border-rose-500\/50 { border-color: rgba(244, 63, 94, 0.4) !important; }
+.light .border-cyan-500\/50 { border-color: rgba(6, 182, 212, 0.4) !important; }
+.light .border-amber-500\/50 { border-color: rgba(245, 158, 11, 0.4) !important; }
+.light .border-violet-500\/50 { border-color: rgba(139, 92, 246, 0.4) !important; }
+
+.light .bg-emerald-500\/5 { background-color: rgba(16, 185, 129, 0.08) !important; }
+.light .bg-rose-500\/5 { background-color: rgba(244, 63, 94, 0.08) !important; }
+.light .bg-cyan-500\/5 { background-color: rgba(6, 182, 212, 0.08) !important; }
+.light .bg-amber-500\/5 { background-color: rgba(245, 158, 11, 0.08) !important; }
+.light .bg-violet-500\/5 { background-color: rgba(139, 92, 246, 0.08) !important; }
+
+.light .border-emerald-500\/20 { border-color: rgba(16, 185, 129, 0.25) !important; }
+.light .border-rose-500\/20 { border-color: rgba(244, 63, 94, 0.25) !important; }
+.light .border-cyan-500\/20 { border-color: rgba(6, 182, 212, 0.25) !important; }
+.light .border-amber-500\/20 { border-color: rgba(245, 158, 11, 0.25) !important; }
+.light .border-violet-500\/20 { border-color: rgba(139, 92, 246, 0.25) !important; }
+
+.light .shadow-\[0_0_15px_rgba\(16\,185\,129\,0\.25\)\] { box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15) !important; }
+.light .shadow-\[0_0_15px_rgba\(244\,63\,94\,0\.25\)\] { box-shadow: 0 2px 8px rgba(244, 63, 94, 0.15) !important; }
+.light .shadow-\[0_0_15px_rgba\(6\,182\,212\,0\.25\)\] { box-shadow: 0 2px 8px rgba(6, 182, 212, 0.15) !important; }
+.light .shadow-\[0_0_15px_rgba\(245\,158\,11\,0\.25\)\] { box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15) !important; }
+.light .shadow-\[0_0_15px_rgba\(139\,92\,246\,0\.25\)\] { box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15) !important; }
+
+.light .shadow-\[inset_0_0_12px_rgba\(16\,185\,129\,0\.1\)\] { box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.06) !important; }
+.light .shadow-\[inset_0_0_12px_rgba\(244\,63\,94\,0\.1\)\] { box-shadow: inset 0 0 12px rgba(244, 63, 94, 0.06) !important; }
+.light .shadow-\[inset_0_0_12px_rgba\(6\,182\,212\,0\.1\)\] { box-shadow: inset 0 0 12px rgba(6, 182, 212, 0.06) !important; }
+.light .shadow-\[inset_0_0_12px_rgba\(245\,158\,11\,0\.1\)\] { box-shadow: inset 0 0 12px rgba(245, 158, 11, 0.06) !important; }
+.light .shadow-\[inset_0_0_12px_rgba\(139\,92\,246\,0\.1\)\] { box-shadow: inset 0 0 12px rgba(139, 92, 246, 0.06) !important; }
+
+/* Desktop Interstitial override background */
+.light [data-testid="desktop-interstitial"] {
+  background: #d5d5dc !important;
+}
+

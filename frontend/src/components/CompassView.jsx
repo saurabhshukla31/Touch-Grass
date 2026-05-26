@@ -31,6 +31,7 @@ export default function CompassView({ onCancel }) {
         orientationPermission,
         units,
         travelMode,
+        theme,
     } = useApp();
 
     const [showOrientPrompt, setShowOrientPrompt] = useState(false);
@@ -82,10 +83,10 @@ export default function CompassView({ onCancel }) {
     const isAlignedRef = useRef(false);
 
     const ringRotationMV = useMotionValue(0);
-    const ringRotationSpring = useSpring(ringRotationMV, { stiffness: 80, damping: 20 });
+    const ringRotationSpring = useSpring(ringRotationMV, { stiffness: 140, damping: 24 });
 
     const needleRotationMV = useMotionValue(0);
-    const needleRotationSpring = useSpring(needleRotationMV, { stiffness: 90, damping: 18 });
+    const needleRotationSpring = useSpring(needleRotationMV, { stiffness: 160, damping: 22 });
 
     useEffect(() => {
         userLocationRef.current = userLocation;
@@ -170,11 +171,14 @@ export default function CompassView({ onCancel }) {
                     <div
                         className="absolute inset-0 rounded-full"
                         style={{
-                        background:
-                            "radial-gradient(closest-side, rgba(16,185,129,0.05), transparent 70%)",
-                    }}
-                />
-                <div className="absolute inset-2 rounded-full border border-white/[0.06] tg-compass-ring-outer" />
+                            background: theme === "light"
+                                ? "radial-gradient(closest-side, rgba(0,0,0,0.02), transparent 75%)"
+                                : "radial-gradient(closest-side, rgba(16,185,129,0.05), transparent 70%)",
+                        }}
+                    />
+                    {/* Glassmorphic dial plate backing */}
+                    <div className="absolute inset-2 rounded-full tg-glass shadow-lg" />
+                    <div className="absolute inset-2 rounded-full border border-white/[0.06] tg-compass-ring-outer" />
                 <div className="absolute inset-8 rounded-full border border-white/[0.04] tg-compass-ring-inner" />
 
                 {/* Tick marks (rotated with heading) */}
@@ -204,11 +208,11 @@ export default function CompassView({ onCancel }) {
                                 color:
                                     l === "N"
                                         ? "rgba(16,185,129,1.0)"
-                                        : "rgba(255,255,255,0.75)",
+                                        : (theme === "light" ? "rgba(28,28,30,0.75)" : "rgba(255,255,255,0.75)"),
                                 textShadow:
                                     l === "N"
-                                        ? "0 0 8px rgba(16,185,129,0.5)"
-                                        : "0 0 6px rgba(255,255,255,0.2)",
+                                        ? (theme === "light" ? "0 0 8px rgba(16,185,129,0.3)" : "0 0 8px rgba(16,185,129,0.5)")
+                                        : (theme === "light" ? "0 0 6px rgba(0,0,0,0.05)" : "0 0 6px rgba(255,255,255,0.2)"),
                             }}
                         >
                             {l}
@@ -225,6 +229,7 @@ export default function CompassView({ onCancel }) {
                         size={260}
                         accent={selectedCategory?.accent || "#10B981"}
                         isAligned={isAligned}
+                        theme={theme}
                     />
                 </motion.div>
             </div>
@@ -267,7 +272,12 @@ export default function CompassView({ onCancel }) {
             </button>
 
             {showOrientPrompt && orientationPermission === "unknown" && (
-                <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 backdrop-blur-sm px-5 pb-32">
+                <div 
+                    className="fixed inset-0 z-40 flex items-end justify-center backdrop-blur-sm px-5 pb-32"
+                    style={{
+                        background: theme === "light" ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.5)"
+                    }}
+                >
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}

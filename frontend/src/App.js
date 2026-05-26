@@ -47,7 +47,9 @@ function useIsMobile() {
 }
 
 function ResolvingOverlay({ category }) {
+  const { theme } = useApp();
   const Icon = category?.Icon;
+  const accentColor = category?.accent || "#10b981";
   return (
     <motion.div
       data-testid="resolving-overlay"
@@ -56,7 +58,7 @@ function ResolvingOverlay({ category }) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[55] flex flex-col items-center justify-center px-8 text-center"
       style={{
-        background: "rgba(8,8,10,0.6)",
+        background: theme === "light" ? "rgba(213,213,220,0.5)" : "rgba(8,8,10,0.6)",
         backdropFilter: "blur(18px)",
       }}
     >
@@ -64,7 +66,7 @@ function ResolvingOverlay({ category }) {
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: `radial-gradient(closest-side, ${category?.accent || '#10b981'}4D, transparent 75%)`,
+            background: `radial-gradient(closest-side, ${accentColor}4D, transparent 75%)`,
             filter: "blur(8px)",
           }}
         />
@@ -78,12 +80,12 @@ function ResolvingOverlay({ category }) {
           }}
           style={{
             borderColor: "transparent",
-            borderLeftColor: category?.accent || "#34d399",
-            borderBottomColor: category?.accent || "#34d399",
+            borderLeftColor: accentColor,
+            borderBottomColor: accentColor,
           }}
         />
         {Icon && (
-          <div className="relative z-10 flex items-center justify-center" style={{ color: category?.accent }}>
+          <div className="relative z-10 flex items-center justify-center" style={{ color: accentColor }}>
             <Icon size={24} strokeWidth={2.2} />
           </div>
         )}
@@ -143,6 +145,7 @@ function Shell() {
     resetSession,
     units,
     travelMode,
+    theme,
   } = useApp();
 
   const tracker = useSessionTracker();
@@ -312,7 +315,7 @@ function Shell() {
       <div className="tg-ambient" />
 
       {/* Tab views — GPU-composited fade+slide, spring physics for buttery motion */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {tab === "home" && (
           <motion.div
             key="home"

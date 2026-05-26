@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Check, RotateCcw, X } from "lucide-react";
 import { savePhoto } from "@/lib/db";
 import { haptics } from "@/lib/haptics";
+import { useApp } from "@/lib/AppState";
 
 // On-device green detection — counts pixels whose hue is in the green range
 // AND that have enough saturation. Returns the proportion (0..1).
@@ -36,6 +37,7 @@ function analyzeGreen(canvas) {
 }
 
 export default function GrassVerification({ session, onComplete, onSkip }) {
+    const { theme } = useApp();
     const [stage, setStage] = useState("intro"); // intro | camera | analyzing | result
     const [result, setResult] = useState(null); // { ratio, success, dataUrl }
     const [error, setError] = useState(null);
@@ -123,7 +125,10 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[80] flex items-end justify-center"
-                style={{ background: "rgba(8,8,10,0.7)", backdropFilter: "blur(12px)" }}
+                style={{ 
+                    background: theme === "light" ? "rgba(0,0,0,0.12)" : "rgba(8,8,10,0.65)", 
+                    backdropFilter: "blur(12px)" 
+                }}
                 data-testid="grass-verification"
             >
                 <motion.div
@@ -210,7 +215,14 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                                             "radial-gradient(60% 60% at 50% 50%, rgba(16,185,129,0.12), transparent 70%)",
                                     }}
                                 />
-                                <div className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-emerald-300/40 shadow-[0_0_0_400px_rgba(8,8,10,0.55)]" />
+                                <div 
+                                    className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-emerald-300/40"
+                                    style={{
+                                        boxShadow: theme === "light"
+                                            ? "0 0 0 400px rgba(213, 213, 220, 0.65)"
+                                            : "0 0 0 400px rgba(8, 8, 10, 0.55)"
+                                    }}
+                                />
                             </div>
                             <div className="mt-4 flex gap-2">
                                 <button

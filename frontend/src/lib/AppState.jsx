@@ -32,6 +32,7 @@ const initial = {
     heading: null, // device heading degrees (0-360), magnetometer
     error: null,
     pillOpen: false,
+    theme: "dark",
 };
 
 export function AppProvider({ children }) {
@@ -61,6 +62,9 @@ export function AppProvider({ children }) {
             try {
                 const s = await getSettings();
                 setHapticsEnabled(true);
+                
+                const currentTheme = s.theme || "dark";
+
                 setState((prev) => ({
                     ...prev,
                     units: s.units,
@@ -69,6 +73,7 @@ export function AppProvider({ children }) {
                     mapViewMode: s.mapViewMode || "2d",
                     navViewMode: s.navViewMode || "3d",
                     appMode: s.appMode || "explore",
+                    theme: currentTheme,
                 }));
             } catch {
                 /* ignore */
@@ -311,6 +316,26 @@ export function AppProvider({ children }) {
         [stopWatchingLocation],
     );
 
+    useEffect(() => {
+        if (!state.theme) return;
+        if (state.theme === "light") {
+            document.documentElement.classList.add("light");
+            document.documentElement.classList.remove("dark");
+        } else {
+            document.documentElement.classList.remove("light");
+            document.documentElement.classList.add("dark");
+        }
+    }, [state.theme]);
+
+    const setTheme = useCallback(async (theme) => {
+        setState((s) => ({ ...s, theme }));
+        try {
+            await persistSettings({ theme });
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     const setUnits = useCallback(async (units) => {
         setState((s) => ({ ...s, units }));
         try {
@@ -386,6 +411,7 @@ export function AppProvider({ children }) {
             resetSession,
             togglePill,
             subscribeHeading,
+            setTheme,
         }),
         [
             state,
@@ -402,6 +428,7 @@ export function AppProvider({ children }) {
             resetSession,
             togglePill,
             subscribeHeading,
+            setTheme,
         ],
     );
 

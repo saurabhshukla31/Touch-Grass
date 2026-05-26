@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Footprints, Bike, Car, Map, Navigation, Globe, Compass, Heart, Trees, Shield, Users, Sparkles } from "lucide-react";
+import { Footprints, Bike, Car, Map, Navigation, Globe, Compass, Heart, Trees, Shield, Users, Sparkles, Sun, Moon } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
@@ -135,7 +135,6 @@ function SettingItem({ label, icon: Icon, color = "emerald", children }) {
         </div>
     );
 }
-
 export default function SettingsView() {
     const {
         units,
@@ -148,7 +147,14 @@ export default function SettingsView() {
         setNavViewMode,
         appMode,
         setAppMode,
+        theme,
+        setTheme,
     } = useApp();
+
+    const toggleTheme = () => {
+        haptics.tap();
+        setTheme(theme === "light" ? "dark" : "light");
+    };
 
     return (
         <div
@@ -222,17 +228,29 @@ export default function SettingsView() {
                     </SettingItem>
                 </div>
 
-                <SettingItem label="Units" icon={Globe} color="cyan">
-                    <SegmentedIcon
-                        testIdPrefix="units"
-                        value={units}
-                        onChange={setUnits}
-                        options={[
-                            { value: "metric", label: "Metric" },
-                            { value: "imperial", label: "Imperial" },
-                        ]}
-                    />
-                </SettingItem>
+                <div className="grid grid-cols-[2fr_1fr] gap-3">
+                    <SettingItem label="Units" icon={Globe} color="cyan">
+                        <SegmentedIcon
+                            testIdPrefix="units"
+                            value={units}
+                            onChange={setUnits}
+                            options={[
+                                { value: "metric", label: "KM" },
+                                { value: "imperial", label: "MI" },
+                            ]}
+                        />
+                    </SettingItem>
+
+                    <SettingItem label="Theme" icon={theme === "light" ? Moon : Sun} color="cyan">
+                        <button
+                            onClick={toggleTheme}
+                            className="flex w-full h-[46px] items-center justify-center rounded-[18px] bg-black/25 ring-1 ring-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/[0.04] active:scale-95 transition-all duration-200"
+                            aria-label="Toggle Theme"
+                        >
+                            {theme === "light" ? <Moon size={18} strokeWidth={2.2} /> : <Sun size={18} strokeWidth={2.2} />}
+                        </button>
+                    </SettingItem>
+                </div>
             </motion.div>
         </div>
     );

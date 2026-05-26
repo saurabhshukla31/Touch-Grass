@@ -74,7 +74,7 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
 }
 
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
-function WeeklyChart({ sessions, units }) {
+function WeeklyChart({ sessions, units, theme }) {
     const bars = useMemo(() => {
         const days = [];
         const today = new Date();
@@ -114,7 +114,7 @@ function WeeklyChart({ sessions, units }) {
                                     height: `${pct}%`,
                                     background: hasData
                                         ? "linear-gradient(to top, rgba(16,185,129,0.5), rgba(16,185,129,0.85))"
-                                        : "rgba(255,255,255,0.04)",
+                                        : (theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)"),
                                     boxShadow: hasData
                                         ? "0 0 12px rgba(16,185,129,0.3)"
                                         : "none",
@@ -215,7 +215,7 @@ function CategoryDonut({ sessions }) {
 // Main InsightsView
 // ══════════════════════════════════════════════════════════════
 export default function InsightsView() {
-    const { units } = useApp();
+    const { units, theme } = useApp();
     const [sessions, setSessions] = useState([]);
     const [photos, setPhotos] = useState([]);
     const [confirming, setConfirming] = useState(false);
@@ -422,7 +422,7 @@ export default function InsightsView() {
 
                 {/* ── Weekly chart ───────────────────────────── */}
                 <Section title="This Week">
-                    <WeeklyChart sessions={sessions} units={units} />
+                    <WeeklyChart sessions={sessions} units={units} theme={theme} />
                 </Section>
 
                 {/* ── Activity heatmap (30 days) ────────────── */}
@@ -440,10 +440,10 @@ export default function InsightsView() {
                                         style={{
                                             background: active
                                                 ? `rgba(16,185,129,${0.18 + intensity * 0.62})`
-                                                : "rgba(255,255,255,0.04)",
+                                                : (theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)"),
                                             boxShadow: active
                                                 ? `inset 0 0 0 1px rgba(16,185,129,0.22), 0 0 ${Math.round(intensity * 8)}px rgba(16,185,129,${intensity * 0.4})`
-                                                : "inset 0 0 0 1px rgba(255,255,255,0.04)",
+                                                : (theme === "light" ? "inset 0 0 0 1px rgba(0,0,0,0.06)" : "inset 0 0 0 1px rgba(255,255,255,0.04)"),
                                         }}
                                         onClick={() =>
                                             setHeatTip(
@@ -716,19 +716,31 @@ export default function InsightsView() {
                                                         className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider"
                                                         style={{
                                                             background:
-                                                                mode === "walk"
-                                                                    ? "rgba(16,185,129,0.12)"
-                                                                    : mode ===
-                                                                        "bike"
-                                                                      ? "rgba(96,165,250,0.12)"
-                                                                      : "rgba(167,139,250,0.12)",
+                                                                theme === "light"
+                                                                    ? (mode === "walk"
+                                                                        ? "rgba(4, 120, 87, 0.15)"
+                                                                        : mode === "bike"
+                                                                          ? "rgba(29, 78, 216, 0.15)"
+                                                                          : "rgba(109, 40, 217, 0.15)")
+                                                                    : (mode === "walk"
+                                                                        ? "rgba(16,185,129,0.12)"
+                                                                        : mode ===
+                                                                            "bike"
+                                                                          ? "rgba(96,165,250,0.12)"
+                                                                          : "rgba(167,139,250,0.12)"),
                                                             color:
-                                                                mode === "walk"
-                                                                    ? "#6EE7B7"
-                                                                    : mode ===
-                                                                        "bike"
-                                                                      ? "#93C5FD"
-                                                                      : "#C4B5FD",
+                                                                theme === "light"
+                                                                    ? (mode === "walk"
+                                                                        ? "#047857"
+                                                                        : mode === "bike"
+                                                                          ? "#1d4ed8"
+                                                                          : "#6d28d9")
+                                                                    : (mode === "walk"
+                                                                        ? "#6EE7B7"
+                                                                        : mode ===
+                                                                            "bike"
+                                                                          ? "#93C5FD"
+                                                                          : "#C4B5FD"),
                                                         }}
                                                     >
                                                         <ModeIcon
@@ -844,7 +856,7 @@ export default function InsightsView() {
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[70] flex items-end justify-center px-5"
                         style={{
-                            background: "rgba(8,8,10,0.55)",
+                            background: theme === "light" ? "rgba(213,213,220,0.5)" : "rgba(8,8,10,0.55)",
                             backdropFilter: "blur(14px)",
                         }}
                         onClick={() => setConfirming(false)}
@@ -909,7 +921,7 @@ export default function InsightsView() {
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[70] flex items-center justify-center p-6"
                         style={{
-                            background: "rgba(8,8,10,0.7)",
+                            background: theme === "light" ? "rgba(213,213,220,0.5)" : "rgba(8,8,10,0.7)",
                             backdropFilter: "blur(18px)",
                         }}
                         onClick={() => setActivePhoto(null)}

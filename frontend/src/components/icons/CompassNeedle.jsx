@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 
 // A slim needle, painted in two halves: bright accent above origin, muted below.
-export const CompassNeedle = ({ size = 220, accent = "#10B981", isAligned = false }) => (
+export const CompassNeedle = ({ size = 220, accent = "#10B981", isAligned = false, theme = "dark" }) => (
     <svg
         width={size}
         height={size}
@@ -15,8 +15,8 @@ export const CompassNeedle = ({ size = 220, accent = "#10B981", isAligned = fals
                 <stop offset="100%" stopColor={accent} stopOpacity={isAligned ? "0.8" : "0.4"} />
             </linearGradient>
             <radialGradient id="tg-needle-core" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="0%" stopColor={theme === "light" ? "#1c1c1e" : "#ffffff"} stopOpacity="0.9" />
+                <stop offset="100%" stopColor={theme === "light" ? "#1c1c1e" : "#ffffff"} stopOpacity="0" />
             </radialGradient>
         </defs>
         {/* upper half — accent */}
@@ -31,8 +31,8 @@ export const CompassNeedle = ({ size = 220, accent = "#10B981", isAligned = fals
         {/* lower half — muted */}
         <polygon
             points="0,80 6,0 -6,0"
-            fill="rgba(255,255,255,0.2)"
-            stroke="rgba(255,255,255,0.25)"
+            fill={theme === "light" ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.2)"}
+            stroke={theme === "light" ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.25)"}
             strokeWidth="0.5"
         />
         {/* core glow */}
@@ -41,7 +41,7 @@ export const CompassNeedle = ({ size = 220, accent = "#10B981", isAligned = fals
             cx="0"
             cy="0"
             r="4"
-            fill="#ffffff"
+            fill={theme === "light" ? "#1c1c1e" : "#ffffff"}
             animate={{ 
                 scale: isAligned ? [1, 2, 1] : 1,
                 opacity: isAligned ? 1 : 0.9
