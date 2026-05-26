@@ -6,8 +6,7 @@ import React, {
     useState,
 } from "react";
 
-// ✅ THE FIX: Changed to a generic eslint-disable comment so the compiler doesn't throw a definition error.
-// eslint-disable-next-line
+
 import mapboxgl from "!mapbox-gl";
 
 import { motion, AnimatePresence } from "framer-motion";

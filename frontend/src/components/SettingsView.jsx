@@ -10,8 +10,8 @@ function ModeSelector({ value, onChange }) {
         { value: "explore", icon: Compass, color: "emerald", label: "Explore" },
         { value: "date", icon: Heart, color: "rose", label: "Date" },
         { value: "escape", icon: Trees, color: "cyan", label: "Escape" },
-        { value: "essentials", icon: Shield, color: "amber", label: "Essentials" },
         { value: "social", icon: Users, color: "violet", label: "Social" },
+        { value: "essentials", icon: Shield, color: "amber", label: "Essentials" },
     ];
     
     const activeColors = {
@@ -174,67 +174,65 @@ export default function SettingsView() {
             <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 flex-1 flex flex-col mt-2 mb-0 min-h-0 w-full max-w-[400px] mx-auto"
+                className="relative z-10 flex-1 flex flex-col justify-between mt-4 mb-2 min-h-0 w-full max-w-[400px] mx-auto"
             >
-                <div className="relative flex-1 flex flex-col justify-between rounded-[32px] p-6 tg-glass">
-                    <SettingItem label="Experience Mode" icon={Sparkles} color="emerald">
-                        <ModeSelector
-                            value={appMode}
-                            onChange={setAppMode}
-                        />
-                    </SettingItem>
+                <SettingItem label="Experience Mode" icon={Sparkles} color="emerald">
+                    <ModeSelector
+                        value={appMode}
+                        onChange={setAppMode}
+                    />
+                </SettingItem>
 
-                    <SettingItem label="Default Transport" icon={Footprints} color="emerald">
+                <SettingItem label="Default Transport" icon={Footprints} color="emerald">
+                    <SegmentedIcon
+                        testIdPrefix="travel"
+                        value={travelMode}
+                        onChange={setTravelMode}
+                        options={[
+                            { value: "walking", icon: Footprints, color: "emerald" },
+                            { value: "cycling", icon: Bike, color: "blue" },
+                            { value: "driving", icon: Car, color: "violet" },
+                        ]}
+                    />
+                </SettingItem>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <SettingItem label="Map View" icon={Map} color="amber">
                         <SegmentedIcon
-                            testIdPrefix="travel"
-                            value={travelMode}
-                            onChange={setTravelMode}
+                            testIdPrefix="mapview"
+                            value={mapViewMode}
+                            onChange={setMapViewMode}
                             options={[
-                                { value: "walking", icon: Footprints, color: "emerald" },
-                                { value: "cycling", icon: Bike, color: "blue" },
-                                { value: "driving", icon: Car, color: "violet" },
+                                { value: "2d", label: "2D" },
+                                { value: "3d", label: "3D" },
                             ]}
                         />
                     </SettingItem>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <SettingItem label="Map View" icon={Map} color="amber">
-                            <SegmentedIcon
-                                testIdPrefix="mapview"
-                                value={mapViewMode}
-                                onChange={setMapViewMode}
-                                options={[
-                                    { value: "2d", label: "2D" },
-                                    { value: "3d", label: "3D" },
-                                ]}
-                            />
-                        </SettingItem>
-
-                        <SettingItem label="Navigation" icon={Navigation} color="violet">
-                            <SegmentedIcon
-                                testIdPrefix="navview"
-                                value={navViewMode}
-                                onChange={setNavViewMode}
-                                options={[
-                                    { value: "2d", label: "2D" },
-                                    { value: "3d", label: "3D" },
-                                ]}
-                            />
-                        </SettingItem>
-                    </div>
-
-                    <SettingItem label="Units" icon={Globe} color="cyan">
+                    <SettingItem label="Navigation" icon={Navigation} color="violet">
                         <SegmentedIcon
-                            testIdPrefix="units"
-                            value={units}
-                            onChange={setUnits}
+                            testIdPrefix="navview"
+                            value={navViewMode}
+                            onChange={setNavViewMode}
                             options={[
-                                { value: "metric", label: "Metric" },
-                                { value: "imperial", label: "Imperial" },
+                                { value: "2d", label: "2D" },
+                                { value: "3d", label: "3D" },
                             ]}
                         />
                     </SettingItem>
                 </div>
+
+                <SettingItem label="Units" icon={Globe} color="cyan">
+                    <SegmentedIcon
+                        testIdPrefix="units"
+                        value={units}
+                        onChange={setUnits}
+                        options={[
+                            { value: "metric", label: "Metric" },
+                            { value: "imperial", label: "Imperial" },
+                        ]}
+                    />
+                </SettingItem>
             </motion.div>
         </div>
     );

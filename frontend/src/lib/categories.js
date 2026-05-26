@@ -334,27 +334,27 @@ export const MODES = {
   explore: {
     label: "Explore Mode",
     mainKey: "grass",
-    gridKeys: ["street_food", "hidden_gems", "mandir", "viewpoint"]
+    gridKeys: ["hidden_gems", "viewpoint", "street_food", "mandir"]
   },
   date: {
     label: "Date Mode",
     mainKey: "cafe",
-    gridKeys: ["dessert", "scenic_spot", "bookstore", "fine_dining"]
+    gridKeys: ["scenic_spot", "dessert", "fine_dining", "bookstore"]
   },
   escape: {
     label: "Escape Mode",
     mainKey: "waterfront",
-    gridKeys: ["quiet_place", "nature_spot", "sunset_point", "trail"]
+    gridKeys: ["nature_spot", "quiet_place", "trail", "sunset_point"]
   },
   essentials: {
     label: "Essentials Mode",
-    mainKey: "pharmacy",
-    gridKeys: ["fuel", "hospital", "convenience_store", "atm"]
+    mainKey: "fuel",
+    gridKeys: ["atm", "convenience_store", "hospital", "pharmacy"]
   },
   social: {
     label: "Social Mode",
     mainKey: "gym",
-    gridKeys: ["bar", "club", "gaming_cafe", "turf"]
+    gridKeys: ["turf", "gaming_cafe", "club", "bar"]
   }
 };
 

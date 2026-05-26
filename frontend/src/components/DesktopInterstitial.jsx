@@ -1,5 +1,5 @@
 import React from "react";
-import { GrassLeaf } from "@/components/icons/GrassLeaf";
+import { Leaf } from "lucide-react";
 
 export default function DesktopInterstitial() {
     return (
@@ -11,7 +11,7 @@ export default function DesktopInterstitial() {
             <div className="tg-ambient" />
             <div className="tg-noise relative w-full max-w-md rounded-3xl p-10 text-center tg-glass-strong">
                 <div className="mx-auto mb-7 flex h-14 w-14 items-center justify-center rounded-2xl tg-glass">
-                    <GrassLeaf size={28} className="text-emerald-400" />
+                    <Leaf size={28} className="text-emerald-400" />
                 </div>
                 <h1 className="mb-3 text-2xl font-black tracking-tight text-white">
                     Touch Grass is a mobile experience.

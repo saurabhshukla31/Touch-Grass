@@ -17,7 +17,6 @@ import CompassView from "@/components/CompassView";
 import MapView from "@/components/MapView";
 import InsightsView from "@/components/InsightsView";
 import SettingsView from "@/components/SettingsView";
-import RandomReveal from "@/components/RandomReveal";
 import GrassVerification from "@/components/GrassVerification";
 import { checkAppVersion } from "@/lib/versionCheck";
 
@@ -48,6 +47,7 @@ function useIsMobile() {
 }
 
 function ResolvingOverlay({ category }) {
+  const Icon = category?.Icon;
   return (
     <motion.div
       data-testid="resolving-overlay"
@@ -60,17 +60,16 @@ function ResolvingOverlay({ category }) {
         backdropFilter: "blur(18px)",
       }}
     >
-      <div className="relative">
+      <div className="relative flex items-center justify-center h-16 w-16">
         <div
-          className="h-16 w-16 rounded-full"
+          className="absolute inset-0 rounded-full"
           style={{
-            background:
-              "radial-gradient(closest-side, rgba(16,185,129,0.7), transparent 75%)",
+            background: `radial-gradient(closest-side, ${category?.accent || '#10b981'}4D, transparent 75%)`,
             filter: "blur(8px)",
           }}
         />
         <motion.div
-          className="absolute inset-0 rounded-full border-2 border-emerald-400/60"
+          className="absolute inset-0 rounded-full border-2"
           animate={{ rotate: 360 }}
           transition={{
             duration: 1.4,
@@ -78,10 +77,16 @@ function ResolvingOverlay({ category }) {
             ease: "linear",
           }}
           style={{
-            borderTopColor: "transparent",
-            borderRightColor: "transparent",
+            borderColor: "transparent",
+            borderLeftColor: category?.accent || "#34d399",
+            borderBottomColor: category?.accent || "#34d399",
           }}
         />
+        {Icon && (
+          <div className="relative z-10 flex items-center justify-center" style={{ color: category?.accent }}>
+            <Icon size={24} strokeWidth={2.2} />
+          </div>
+        )}
       </div>
       <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">
         Resolving
@@ -144,7 +149,6 @@ function Shell() {
   const plannedDistanceRef = useRef(null);
 
   const [resolveError, setResolveError] = useState(null);
-  const [randomCategory, setRandomCategory] = useState(null);
   const [showVerification, setShowVerification] = useState(false);
 
   // Auto-watch geolocation once we're active.
@@ -156,13 +160,6 @@ function Shell() {
     haptics.select();
     setResolveError(null);
     let resolved = cat;
-    if (cat.key === "random") {
-      const pool = RANDOM_POOL;
-      resolved = pool[Math.floor(Math.random() * pool.length)];
-      setRandomCategory(resolved);
-      // brief reveal delay
-      await new Promise((r) => setTimeout(r, 1100));
-    }
     // eslint-disable-next-line no-console
     console.log("[tg] select category", cat.key, "→ resolved", resolved.key);
     update({ mode: "resolving", selectedCategory: resolved });
@@ -177,7 +174,6 @@ function Shell() {
       console.log("[tg] geolocation result", loc);
     }
     if (!loc) {
-      setRandomCategory(null);
       update({ mode: "idle", selectedCategory: null });
       setResolveError("Location permission is needed to find places nearby.");
       toast.error("Location permission is needed to find places.");
@@ -185,7 +181,6 @@ function Shell() {
     }
 
     if (!hasMapboxToken()) {
-      setRandomCategory(null);
       update({ mode: "idle", selectedCategory: null });
       setResolveError("Mapbox token missing.");
       toast.error("Mapbox token missing — set REACT_APP_MAPBOX_API_KEY.");
@@ -193,11 +188,7 @@ function Shell() {
     }
 
     try {
-      // For Random, try the picked one; if no results, try a couple more.
-      const tryQueue =
-        cat.key === "random"
-          ? [resolved, ...pickAlternates(resolved)]
-          : [resolved];
+      const tryQueue = [resolved];
       let found = null;
       let usedCat = resolved;
       for (const c of tryQueue) {
@@ -220,13 +211,11 @@ function Shell() {
         }
       }
       if (!found) {
-        setRandomCategory(null);
         update({ mode: "idle", selectedCategory: null });
         setResolveError("No nearby places found in this category.");
         toast.error("No nearby places found. Try another category.");
         return;
       }
-      setRandomCategory(null);
       // eslint-disable-next-line no-console
       console.log("[tg] activating session →", found.name);
       haptics.success();
@@ -243,7 +232,7 @@ function Shell() {
         destination: {
           ...found,
           categoryKey: usedCat.key,
-          viaRandom: cat.key === "random",
+          viaRandom: false,
         },
         currentTab: "compass",
         navStarted: false,
@@ -253,18 +242,11 @@ function Shell() {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error("[tg] handleSelectCategory error", e);
-      setRandomCategory(null);
       update({ mode: "idle", selectedCategory: null });
       setResolveError(e.message || "Failed to resolve destination");
       toast.error("Could not resolve destination.");
     }
   };
-
-  function pickAlternates(c) {
-    return RANDOM_POOL.filter((x) => x.key !== c.key)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-  }
 
   const handleEndSession = async () => {
     // Stop GPS tracker and collect results
@@ -430,8 +412,7 @@ function Shell() {
       </div>
 
       <AnimatePresence>
-        {randomCategory && <RandomReveal category={randomCategory} />}
-        {mode === "resolving" && !randomCategory && (
+        {mode === "resolving" && (
           <ResolvingOverlay category={selectedCategory} />
         )}
       </AnimatePresence>
