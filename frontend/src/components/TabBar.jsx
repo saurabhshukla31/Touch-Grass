@@ -65,7 +65,7 @@ export default function TabBar({ currentTab, onChange }) {
                             {isActive && (
                                 <motion.span
                                     layoutId="tab-pill"
-                                    className="absolute inset-0 rounded-[20px]"
+                                    className="absolute inset-0 rounded-[20px] tg-tab-pill"
                                     transition={{
                                         type: "spring",
                                         stiffness: 380,
