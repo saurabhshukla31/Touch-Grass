@@ -12,6 +12,7 @@ import {
     Trophy,
     Star,
     Route,
+    X,
 } from "lucide-react";
 import { listSessions, listPhotos, clearAllData } from "@/lib/db";
 import {
@@ -108,7 +109,7 @@ function WeeklyChart({ sessions, units }) {
                     return (
                         <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
                             <div
-                                className="w-full rounded-lg transition-all duration-500"
+                                className="w-full rounded-lg transition-[height,background,box-shadow] duration-500"
                                 style={{
                                     height: `${pct}%`,
                                     background: hasData
@@ -219,6 +220,7 @@ export default function InsightsView() {
     const [photos, setPhotos] = useState([]);
     const [confirming, setConfirming] = useState(false);
     const [wiping, setWiping] = useState(false);
+    const [activePhoto, setActivePhoto] = useState(null);
 
     const load = async () => {
         try {
@@ -777,16 +779,20 @@ export default function InsightsView() {
                     ) : (
                         <div className="grid grid-cols-3 gap-2">
                             {photos.map((p) => (
-                                <div
+                                <button
                                     key={p.id}
-                                    className="relative aspect-square overflow-hidden rounded-2xl tg-glass"
+                                    onClick={() => {
+                                        haptics.tap();
+                                        setActivePhoto(p);
+                                    }}
+                                    className="relative aspect-square overflow-hidden rounded-2xl tg-glass active:scale-95 transition-transform duration-200"
                                 >
                                     <img
                                         src={p.dataUrl}
                                         alt=""
                                         className="absolute inset-0 h-full w-full object-cover"
                                     />
-                                </div>
+                                </button>
                             ))}
                         </div>
                     )}
@@ -794,17 +800,17 @@ export default function InsightsView() {
 
                 {/* ── Storage / clear data ───────────────────── */}
                 <Section title="Storage">
-                    <div className="rounded-3xl p-5 tg-rose-glow">
+                    <div className="rounded-3xl p-5 tg-glass">
                         <div className="flex flex-col gap-4">
                             <div className="min-w-0">
                                 <div className="text-sm font-bold text-white flex items-center gap-2">
                                     <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                     </span>
                                     On-Device Storage
                                 </div>
-                                <div className="mt-2 text-[11px] leading-relaxed text-white/50">
+                                <div className="mt-2 text-[11px] leading-relaxed text-white/40">
                                     Sessions, photos, and preferences live
                                     locally in this browser. Clearing removes
                                     them permanently from this device.
@@ -818,7 +824,7 @@ export default function InsightsView() {
                                 }}
                                 whileHover={{ scale: 1.01 }}
                                 whileTap={{ scale: 0.98 }}
-                                className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 text-xs font-bold text-rose-300 transition-all hover:bg-rose-500/15"
+                                className="w-full flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/[0.04] text-xs font-bold text-white/50 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/15 transition-colors duration-200"
                             >
                                 <Trash2 size={13} strokeWidth={2} />
                                 Clear Data
@@ -887,6 +893,80 @@ export default function InsightsView() {
                                     <Trash2 size={14} strokeWidth={2.2} />
                                     {wiping ? "Clearing…" : "Erase"}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── Active Photo Viewer Modal ─────────────────── */}
+            <AnimatePresence>
+                {activePhoto && (
+                    <motion.div
+                        key="photo-modal"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[70] flex items-center justify-center p-6"
+                        style={{
+                            background: "rgba(8,8,10,0.7)",
+                            backdropFilter: "blur(18px)",
+                        }}
+                        onClick={() => setActivePhoto(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.92, opacity: 0, y: 15 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.92, opacity: 0, y: 15 }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 350,
+                                damping: 30,
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-sm rounded-[32px] p-4 tg-glass-strong shadow-2xl flex flex-col gap-4"
+                        >
+                            {/* Close button */}
+                            <button
+                                onClick={() => {
+                                    haptics.tap();
+                                    setActivePhoto(null);
+                                }}
+                                className="absolute right-6 top-6 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-md border border-white/10 active:scale-90 transition-transform"
+                                aria-label="Close"
+                            >
+                                <X size={14} strokeWidth={2.2} />
+                            </button>
+
+                            {/* Image container */}
+                            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black/40 border border-white/5 shadow-inner">
+                                <img
+                                    src={activePhoto.dataUrl}
+                                    alt="Grass moment"
+                                    className="h-full w-full object-cover"
+                                />
+                            </div>
+
+                            {/* Info */}
+                            <div className="px-1 pb-1">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/40">
+                                    Grass Verification
+                                </div>
+                                <div className="mt-1.5 flex items-center justify-between">
+                                    <span className="text-sm font-semibold text-white/90">
+                                        {new Date(activePhoto.takenAt).toLocaleDateString(undefined, {
+                                            weekday: "short",
+                                            month: "short",
+                                            day: "numeric",
+                                            hour: "numeric",
+                                            minute: "2-digit",
+                                        })}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        {(activePhoto.ratio * 100).toFixed(0)}% Green
+                                    </span>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

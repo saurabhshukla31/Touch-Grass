@@ -829,7 +829,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             }
         } catch { }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [route, mapReady, accentColor, userLocation?.lng, userLocation?.lat]);
+    }, [route, mapReady, accentColor, userLocation?.lng, userLocation?.lat, tracker?.routePoints]);
 
     useEffect(() => {
         const map = mapRef.current;
@@ -1209,7 +1209,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                             <button
                                 data-testid="end-navigation"
                                 onClick={handleEnd}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 ring-1 ring-rose-500/20 active:scale-[0.98] transition-all hover:bg-rose-500/15"
+                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 ring-1 ring-rose-500/20 active:scale-[0.98] transition-colors hover:bg-rose-500/15"
                             >
                                 <Square size={12} strokeWidth={2} fill="currentColor" />
                                 End

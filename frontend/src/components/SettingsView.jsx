@@ -1,15 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Footprints, Bike, Car, Map, Navigation } from "lucide-react";
+import { Check, Footprints, Bike, Car, Map, Navigation, Globe } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 
 function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
+    const activeColors = {
+        emerald: "text-emerald-400",
+        blue: "text-blue-400",
+        amber: "text-amber-400",
+        violet: "text-violet-400",
+        cyan: "text-cyan-400",
+    };
     return (
         <div className="flex w-full rounded-[18px] bg-black/20 p-1.5 ring-1 ring-white/5 backdrop-blur-md">
             {options.map((opt) => {
                 const active = value === opt.value;
                 const Icon = opt.icon;
+                const iconColor = active ? (activeColors[opt.color] || "text-white") : "text-white/40 group-hover:text-white/60";
                 return (
                     <button
                         key={opt.value}
@@ -18,7 +26,7 @@ function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
                             haptics.tap();
                             onChange(opt.value);
                         }}
-                        className={`flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2.5 transition-all duration-300 ${
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-[14px] py-2.5 transition-[background-color,color,box-shadow,border-color] duration-300 group ${
                             active
                                 ? "bg-white/15 text-white ring-1 ring-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
                                 : "text-white/40 hover:text-white/60 hover:bg-white/[0.04]"
@@ -28,7 +36,7 @@ function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
                             <Icon 
                                 size={opt.label ? 14 : 18} 
                                 strokeWidth={active ? 2.5 : 2} 
-                                className={active ? "opacity-100" : "opacity-70"}
+                                className={`transition-colors duration-300 ${iconColor}`}
                             />
                         )}
                         {opt.label && (
@@ -43,11 +51,23 @@ function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
     );
 }
 
-function SettingItem({ label, icon: Icon, children }) {
+function SettingItem({ label, icon: Icon, color = "emerald", children }) {
+    const colors = {
+        emerald: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/15",
+        blue: "bg-blue-500/10 text-blue-400 border border-blue-500/15",
+        amber: "bg-amber-500/10 text-amber-400 border border-amber-500/15",
+        rose: "bg-rose-500/10 text-rose-400 border border-rose-500/15",
+        violet: "bg-violet-500/10 text-violet-400 border border-violet-500/15",
+        cyan: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15",
+    };
     return (
         <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 ml-1">
-                {Icon && <Icon size={12} strokeWidth={2.5} />}
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 ml-1">
+                {Icon && (
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-xl ${colors[color] || colors.emerald}`}>
+                        <Icon size={13} strokeWidth={2.2} />
+                    </div>
+                )}
                 {label}
             </div>
             {children}
@@ -123,7 +143,7 @@ export default function SettingsView() {
                 className="relative z-10 flex-1 flex flex-col justify-center min-h-0"
             >
                 <div className="relative overflow-hidden rounded-[32px] p-6 bg-white/[0.03] shadow-2xl ring-1 ring-white/10 backdrop-blur-xl flex flex-col gap-6 before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/5 before:to-transparent before:pointer-events-none">
-                    <SettingItem label="Measurement System">
+                    <SettingItem label="Measurement System" icon={Globe} color="cyan">
                         <SegmentedIcon
                             testIdPrefix="units"
                             value={draftUnits}
@@ -135,21 +155,21 @@ export default function SettingsView() {
                         />
                     </SettingItem>
 
-                    <SettingItem label="Default Transport">
+                    <SettingItem label="Default Transport" icon={Footprints} color="emerald">
                         <SegmentedIcon
                             testIdPrefix="travel"
                             value={draftMode}
                             onChange={setDraftMode}
                             options={[
-                                { value: "walking", icon: Footprints },
-                                { value: "cycling", icon: Bike },
-                                { value: "driving", icon: Car },
+                                { value: "walking", icon: Footprints, color: "emerald" },
+                                { value: "cycling", icon: Bike, color: "blue" },
+                                { value: "driving", icon: Car, color: "violet" },
                             ]}
                         />
                     </SettingItem>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <SettingItem label="Map View" icon={Map}>
+                        <SettingItem label="Map View" icon={Map} color="amber">
                             <SegmentedIcon
                                 testIdPrefix="mapview"
                                 value={draftMapMode}
@@ -161,7 +181,7 @@ export default function SettingsView() {
                             />
                         </SettingItem>
 
-                        <SettingItem label="Navigation" icon={Navigation}>
+                        <SettingItem label="Navigation" icon={Navigation} color="violet">
                             <SegmentedIcon
                                 testIdPrefix="navview"
                                 value={draftNavMode}
@@ -183,7 +203,7 @@ export default function SettingsView() {
                 disabled={!dirty || saving}
                 onClick={onSave}
                 whileTap={{ scale: 0.98 }}
-                className={`mt-4 relative z-10 flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-2xl text-sm font-black tracking-wide transition-all duration-300 ${
+                className={`mt-4 relative z-10 flex h-[52px] shrink-0 items-center justify-center gap-2 rounded-2xl text-sm font-black tracking-wide transition-[background-color,color,box-shadow,border-color] duration-300 ${
                     dirty && !saving
                         ? "bg-emerald-500 text-black shadow-[0_8px_30px_-10px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400"
                         : "bg-white/[0.04] text-white/30 ring-1 ring-white/5"
