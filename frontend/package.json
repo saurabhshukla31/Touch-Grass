@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "1.0.1",
+  "version": "1.1.2",
   "private": true,
   "dependencies": {
     "framer-motion": "^12.40.0",

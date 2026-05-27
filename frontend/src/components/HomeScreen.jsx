@@ -97,6 +97,14 @@ function CategoryCard({ category, onSelect, theme, variant = "standard" }) {
     );
 }
 
+const MODE_HEADINGS = {
+    explore: "Where do you want to go?",
+    date: "Planning something memorable?",
+    escape: "Need a break from it all?",
+    social: "Where’s the crew heading?",
+    essentials: "What do you need to get done today?",
+};
+
 export default function HomeScreen({ onSelectCategory }) {
     const { appMode, theme, changeAppMode } = useApp();
     const config = MODES[appMode] || MODES.explore;
@@ -119,75 +127,81 @@ export default function HomeScreen({ onSelectCategory }) {
         >
             <div className="tg-ambient" />
 
-            <motion.header
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-                className="relative z-10 pt-5 pb-5 w-full max-w-[400px] mx-auto"
-            >
-                <motion.button
-                    data-testid="mode-cycle-tile"
-                    onClick={handleToggleMode}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] border transition-all duration-300 tg-no-select"
-                    style={{
-                        background: theme === "light"
-                            ? "rgba(var(--mode-accent-rgb), 0.06)"
-                            : "rgba(var(--mode-accent-rgb), 0.08)",
-                        borderColor: theme === "light"
-                            ? "rgba(var(--mode-accent-rgb), 0.25)"
-                            : "rgba(var(--mode-accent-rgb), 0.3)",
-                        color: "var(--mode-accent)",
-                        boxShadow: theme === "light"
-                            ? "0 2px 8px rgba(var(--mode-accent-rgb), 0.05)"
-                            : "0 4px 12px rgba(var(--mode-accent-rgb), 0.15)",
-                    }}
+            <div className="relative z-10 w-full max-w-[400px] mx-auto translate-y-2 flex flex-col">
+                <motion.header
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+                    className="relative pt-5 pb-5 w-full"
                 >
-                    {(() => {
-                        const currentModeObj = MODES[appMode] || MODES.explore;
-                        const ModeIcon = currentModeObj.icon;
-                        return (
-                            <>
-                                {ModeIcon && <ModeIcon size={10} strokeWidth={2.5} className="opacity-75" />}
-                                <span>{currentModeObj.label} Mode</span>
-                            </>
-                        );
-                    })()}
-                </motion.button>
-                <h1
-                    data-testid="home-heading"
-                    className="mt-2 text-[36px] font-black leading-[1.05] tracking-tight text-white"
-                >
-                    Where would you<br />like to go?
-                </h1>
-            </motion.header>
+                    <motion.button
+                        data-testid="mode-cycle-tile"
+                        onClick={handleToggleMode}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] border transition-all duration-300 tg-no-select"
+                        style={{
+                            background: theme === "light"
+                                ? "rgba(var(--mode-accent-rgb), 0.06)"
+                                : "rgba(var(--mode-accent-rgb), 0.08)",
+                            borderColor: theme === "light"
+                                ? "rgba(var(--mode-accent-rgb), 0.25)"
+                                : "rgba(var(--mode-accent-rgb), 0.3)",
+                            color: "var(--mode-accent)",
+                            boxShadow: theme === "light"
+                                ? "0 2px 8px rgba(var(--mode-accent-rgb), 0.05)"
+                                : "0 4px 12px rgba(var(--mode-accent-rgb), 0.15)",
+                        }}
+                    >
+                        {(() => {
+                            const currentModeObj = MODES[appMode] || MODES.explore;
+                            const ModeIcon = currentModeObj.icon;
+                            return (
+                                <>
+                                    {ModeIcon && <ModeIcon size={10} strokeWidth={2.5} className="opacity-75" />}
+                                    <span>{currentModeObj.label} Mode</span>
+                                </>
+                            );
+                        })()}
+                    </motion.button>
+                    <motion.h1
+                        key={appMode}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, ease: "easeOut" }}
+                        data-testid="home-heading"
+                        className="mt-2 text-[36px] font-black leading-[1.05] tracking-tight text-white"
+                    >
+                        {MODE_HEADINGS[appMode] || "Where do you want to go?"}
+                    </motion.h1>
+                </motion.header>
 
-            <motion.div
-                initial={{ opacity: 0, y: 32 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                    duration: 0.7,
-                    delay: 0.08,
-                    ease: [0.32, 0.72, 0, 1],
-                }}
-                className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 pb-8 max-w-[400px] mx-auto w-full mt-2"
-            >
-                <div className="w-full h-[160px] shrink-0">
-                    <CategoryCard category={grass} onSelect={onSelectCategory} theme={theme} variant="hero" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 mt-0">
-                    {rest.map((cat) => (
-                        <CategoryCard
-                            key={cat.key}
-                            category={cat}
-                            onSelect={onSelectCategory}
-                            theme={theme}
-                            variant="standard"
-                        />
-                    ))}
-                </div>
-            </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, y: 32 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                        duration: 0.7,
+                        delay: 0.08,
+                        ease: [0.32, 0.72, 0, 1],
+                    }}
+                    className="relative flex min-h-0 flex-col gap-4 pb-8 w-full mt-2"
+                >
+                    <div className="w-full h-[160px] shrink-0">
+                        <CategoryCard category={grass} onSelect={onSelectCategory} theme={theme} variant="hero" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-0">
+                        {rest.map((cat) => (
+                            <CategoryCard
+                                key={cat.key}
+                                category={cat}
+                                onSelect={onSelectCategory}
+                                theme={theme}
+                                variant="standard"
+                            />
+                        ))}
+                    </div>
+                </motion.div>
+            </div>
         </div>
     );
 }

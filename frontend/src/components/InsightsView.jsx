@@ -18,7 +18,7 @@ import {
     Send,
     MessageSquare,
 } from "lucide-react";
-import { listSessions, listPhotos, clearAllData } from "@/lib/db";
+import { listSessions, clearAllData } from "@/lib/db";
 import {
     formatDistance,
     formatDuration,
@@ -29,6 +29,63 @@ import {
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 import { CATEGORIES } from "@/lib/categories";
+
+const MODE_EMOJIS = {
+    explore: "🤠",
+    date: "💘",
+    escape: "🧘",
+    social: "🎉",
+    essentials: "🤵",
+};
+
+const MODE_SUGGESTIONS = {
+    explore: [
+        "Suggest a hidden park nearby",
+        "Give me a walking challenge"
+    ],
+    date: [
+        "Suggest a cozy cafe spot",
+        "Plan a scenic sunset walk",
+        "Tease me about my dating stats"
+    ],
+    escape: [
+        "Find a quiet place to escape",
+        "Recommend a nature preserve",
+        "Help me do a digital detox"
+    ],
+    social: [
+        "Suggest a group hangout turf",
+        "Find a lively cafe nearby",
+        "Recommend social spots"
+    ],
+    essentials: [
+        "Plan a quick errand route",
+        "Suggest fuel + coffee stops",
+        "Find a nearby ATM or store"
+    ]
+};
+
+function TypewriterText({ text }) {
+    const words = text.split(" ");
+    return (
+        <motion.span>
+            {words.map((word, i) => (
+                <motion.span
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                        duration: 0.08,
+                        delay: i * 0.04,
+                        ease: "easeOut"
+                    }}
+                >
+                    {word}{" "}
+                </motion.span>
+            ))}
+        </motion.span>
+    );
+}
 
 // ── Tiny mode icon ────────────────────────────────────────────
 function ModeIcon({ mode, size = 12, className = "" }) {
@@ -249,9 +306,11 @@ The user is currently in "${appMode.toUpperCase()}" mode. You must behave specif
 Your focus is specifically on: ${ctx.focus}.
 Your tone should be ${ctx.tone}.
 
-Analyze user travel and activity data and respond with a JSON object containing exactly these two keys:
-1. "commentary": A short, cheeky, and highly playful analysis of their roam/exploration patterns specific to this mode. Keep it to 2-3 sentences.
-2. "challenges": An array of exactly 3 adventurous, fun challenges specific to this mode, tailored to their stats to encourage them to roam outside more.`;
+Analyze user travel and activity data and respond with a JSON object containing exactly these four keys:
+1. "title": A short, catchy, 2-3 word adventure persona title based on their roaming pattern (e.g. "Waterfront Wanderer", "Urban Pavement Crusher", "Zen Path Seeker").
+2. "commentary": A short, cheeky, and highly playful analysis of their roam/exploration patterns specific to this mode. Keep it to 2-3 sentences.
+3. "metricName": A creative, custom metric name related to their style in this mode (e.g. "Zen Vibe Level", "Errand Mastery", "Cupid Readiness").
+4. "metricValue": A creative score or grade for the metric (e.g. "95/100", "A+", "Elite", "Wanderer II").`;
 
     const userPrompt = `Here is my RoamOut activity data:\n${JSON.stringify(analyticsData, null, 2)}`;
 
@@ -342,7 +401,7 @@ async function fetchNearbyPOIsForMode(lat, lng, appMode) {
 }
 
 // ── Groq API Chat helper ──────────────────────────────────────
-async function fetchRoamieChatResponse(chatHistory, analyticsData, currentInsights, appMode, nearbyPlaces) {
+async function fetchRoamieChatResponse(chatHistory, analyticsData, currentInsights, appMode, nearbyPlaces, gpsActive) {
     const apiKey = process.env.REACT_APP_GROQ_API_KEY;
     if (!apiKey) {
         throw new Error("Groq API key is not configured.");
@@ -381,10 +440,14 @@ async function fetchRoamieChatResponse(chatHistory, analyticsData, currentInsigh
     const ctx = modeContexts[appMode] || modeContexts.explore;
 
     let placesInfo = "";
-    if (nearbyPlaces && nearbyPlaces.length > 0) {
-        placesInfo = `Here are the ACTUAL, REAL nearest places found nearby the user via Mapbox Search:\n${JSON.stringify(nearbyPlaces, null, 2)}\nUse these real names, categories, and distances (in km) to answer any questions the user asks about where to go or places to visit. Do NOT hallucinate places. Suggest from this list.`;
+    if (gpsActive) {
+        if (nearbyPlaces && nearbyPlaces.length > 0) {
+            placesInfo = `Here are the ACTUAL, REAL nearest places found nearby the user via Mapbox Search:\n${JSON.stringify(nearbyPlaces, null, 2)}\nUse these real names, categories, and distances (in km) to answer any questions the user asks about where to go or places to visit. Do NOT hallucinate places. Suggest from this list.`;
+        } else {
+            placesInfo = `GPS location is active and enabled, but Mapbox search returned no POI results nearby for the user's current mode. If the user asks for places, advise them that location is active but no matching places were found nearby.`;
+        }
     } else {
-        placesInfo = `No real-time nearby GPS locations could be retrieved. If the user asks for places, advise them to enable GPS location on the main screen so you can recommend exact spots.`;
+        placesInfo = `GPS location is currently not active or not granted. If the user asks for places, advise them to enable GPS location on the main screen so you can recommend exact spots.`;
     }
 
     const systemPrompt = `You are Roamie, a playful, adventurous AI companion for "RoamOut", a PWA that helps users reconnect with the physical world, touch grass, and explore outside.
@@ -397,8 +460,9 @@ ${placesInfo}
 
 Context about the user:
 - Current activity stats: ${JSON.stringify(analyticsData.overview)}
-- Active challenges: ${JSON.stringify(currentInsights.challenges)}
-- Your recent commentary on their stats: "${currentInsights.commentary}"
+- Your recent persona title for them: "${currentInsights?.title || "Roamer"}"
+- Your recent commentary on their stats: "${currentInsights?.commentary}"
+- Their custom metric: ${currentInsights?.metricName || "Grass Touched"}: ${currentInsights?.metricValue || "100%"}
 
 Respond directly to the user's latest message. Keep the conversation contextually relevant.`;
 
@@ -436,7 +500,7 @@ Respond directly to the user's latest message. Keep the conversation contextuall
 }
 
 // ── Roamie AI Insights Component ───────────────────────────────
-function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme, appMode, userLocation }) {
+function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMode, userLocation, onFocusChange }) {
     const [insights, setInsights] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -447,13 +511,12 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
     const [chatError, setChatError] = useState(null);
 
     const chatEndRef = useRef(null);
+    const cardRef = useRef(null);
     const apiKey = process.env.REACT_APP_GROQ_API_KEY;
 
     const cacheKey = useMemo(() => {
-        const totalPhotos = photos.length;
-        const avgRatio = photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0;
-        return `roamie_${appMode}_${sessions.length}_${stats.totalActualKm.toFixed(2)}_${stats.streaks.current}_${totalPhotos}_${avgRatio.toFixed(2)}`;
-    }, [appMode, sessions.length, stats.totalActualKm, stats.streaks, photos]);
+        return `roamie_${appMode}_${sessions.length}_${stats.totalActualKm.toFixed(2)}_${stats.streaks.current}`;
+    }, [appMode, sessions.length, stats.totalActualKm, stats.streaks]);
 
     useEffect(() => {
         if (!apiKey) return;
@@ -506,18 +569,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
         }));
     };
 
-    const handleSendChatMessage = async (e) => {
-        if (e) e.preventDefault();
-        const text = chatInput.trim();
-        if (!text || chatLoading) return;
-
-        haptics.select();
-
-        const newUserMessage = { role: "user", content: text };
-        const updatedMessages = [...chatMessages, newUserMessage];
-        
-        saveChatMessages(updatedMessages);
-        setChatInput("");
+    const processChatMessage = async (updatedMessages) => {
         setChatLoading(true);
         setChatError(null);
 
@@ -572,11 +624,6 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                 startedAt: s.startedAt,
                 category: s.categoryLabel,
             })),
-            photoStats: {
-                totalPhotos: photos.length,
-                averageGreenRatio:
-                    photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0,
-            },
         };
 
         let nearbyPlaces = [];
@@ -589,7 +636,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
         }
 
         try {
-            const responseText = await fetchRoamieChatResponse(updatedMessages, analyticsData, insights, appMode, nearbyPlaces);
+            const responseText = await fetchRoamieChatResponse(updatedMessages, analyticsData, insights, appMode, nearbyPlaces, Boolean(userLocation));
             const updatedWithAI = [...updatedMessages, { role: "assistant", content: responseText }];
             saveChatMessages(updatedWithAI);
             haptics.success();
@@ -600,6 +647,33 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
         } finally {
             setChatLoading(false);
         }
+    };
+
+    const handleSendChatMessage = async (e) => {
+        if (e) e.preventDefault();
+        const text = chatInput.trim();
+        if (!text || chatLoading) return;
+
+        haptics.select();
+
+        const newUserMessage = { role: "user", content: text };
+        const updatedMessages = [...chatMessages, newUserMessage];
+        
+        saveChatMessages(updatedMessages);
+        setChatInput("");
+        await processChatMessage(updatedMessages);
+    };
+
+    const handleSuggestionTap = async (text) => {
+        if (chatLoading) return;
+
+        haptics.select();
+
+        const newUserMessage = { role: "user", content: text };
+        const updatedMessages = [...chatMessages, newUserMessage];
+        
+        saveChatMessages(updatedMessages);
+        await processChatMessage(updatedMessages);
     };
 
     const handleClearChat = () => {
@@ -664,9 +738,8 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                     category: s.categoryLabel,
                 })),
                 photoStats: {
-                    totalPhotos: photos.length,
-                    averageGreenRatio:
-                        photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0,
+                    totalPhotos: 0,
+                    averageGreenRatio: 0,
                 },
             };
 
@@ -711,17 +784,35 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
 
     return (
         <Section title="Roamie AI">
-            <div className="rounded-[24px] p-5 tg-glass relative overflow-hidden">
+            <div
+                ref={cardRef}
+                onScroll={(e) => {
+                    e.currentTarget.scrollTop = 0;
+                    e.currentTarget.scrollLeft = 0;
+                }}
+                className="rounded-[24px] p-5 tg-glass relative overflow-hidden"
+            >
                 <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none" />
                 <div className="absolute -left-10 -bottom-10 h-28 w-28 rounded-full bg-blue-500/5 blur-2xl pointer-events-none" />
 
                 <div className="relative z-10">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                                <Sparkles size={14} />
+                        <div className="flex items-center gap-2.5">
+                            <motion.div 
+                                whileHover={{ scale: 1.1, rotate: [0, -10, 10, 0] }}
+                                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/25 text-sm shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                            >
+                                {loading && (
+                                    <span className="absolute inset-0 rounded-full border border-emerald-400 animate-ping opacity-75" />
+                                )}
+                                <span className="relative select-none leading-none">
+                                    {MODE_EMOJIS[appMode] || "🤠"}
+                                </span>
+                            </motion.div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-white leading-tight">Roamie</span>
+                                <span className="text-[9px] font-medium text-emerald-400 uppercase tracking-widest leading-none mt-0.5">AI Companion</span>
                             </div>
-                            <span className="text-xs font-bold text-white">Roamie's Take</span>
                         </div>
                         {insights && !loading && (
                             <button
@@ -781,7 +872,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                                 className="mt-4 flex flex-col gap-3"
                             >
                                 <p className="text-xs text-white/50 leading-relaxed">
-                                    Ready for a playful breakdown of your outdoor roaming and some tailored adventure challenges?
+                                    Ready for a playful breakdown of your outdoor roaming?
                                 </p>
                                 <button
                                     onClick={handleGenerate}
@@ -801,27 +892,23 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                                 exit={{ opacity: 0, y: -10 }}
                                 className="mt-4 flex flex-col gap-4"
                             >
-                                <div className="text-xs leading-relaxed text-white/80 bg-white/[0.03] p-3 rounded-xl border border-white/[0.05] italic">
-                                    "{insights.commentary}"
-                                </div>
-
-                                <div>
-                                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 mb-2">
-                                        Your Challenges
+                                {insights.title && (
+                                    <div className="flex items-center justify-between gap-3 bg-white/[0.02] border border-white/[0.05] p-3.5 rounded-2xl">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">Your Persona</span>
+                                            <span className="text-xs font-extrabold text-white truncate">{insights.title}</span>
+                                        </div>
+                                        {insights.metricName && (
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-white/30">{insights.metricName}</span>
+                                                <span className="text-xs font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">{insights.metricValue}</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    <ul className="flex flex-col gap-2">
-                                        {insights.challenges?.map((challenge, idx) => (
-                                            <li
-                                                key={idx}
-                                                className="flex items-start gap-2.5 text-xs text-white/70 bg-emerald-500/[0.02] p-2.5 rounded-xl border border-emerald-500/[0.05] hover:border-emerald-500/10 hover:bg-emerald-500/[0.04] transition-all"
-                                            >
-                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
-                                                    {idx + 1}
-                                                </span>
-                                                <span className="leading-tight pt-0.5">{challenge}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                )}
+
+                                <div className="text-xs leading-relaxed text-white/80 bg-white/[0.03] p-3.5 rounded-2xl border border-white/[0.05] italic">
+                                    "{insights.commentary}"
                                 </div>
 
                                 <div className={`mt-4 pt-4 border-t ${theme === "light" ? "border-black/[0.06]" : "border-white/[0.06]"}`}>
@@ -845,32 +932,40 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                                     </div>
 
                                     {/* Chat Messages Area */}
-                                    <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 mb-3 no-scrollbar">
+                                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1 mb-3 no-scrollbar">
                                         {chatMessages.length === 0 ? (
                                             <div className={`text-[11px] py-3 text-center rounded-xl border ${
                                                 theme === "light"
                                                     ? "text-black/45 bg-black/[0.02] border-black/[0.04]"
                                                     : "text-white/45 bg-white/[0.02] border-white/[0.04]"
                                             }`}>
-                                                Ask me anything about your stats, challenges, or get advice on where to explore!
+                                                Ask me anything about your stats or get advice on where to explore!
                                             </div>
                                         ) : (
-                                            chatMessages.map((msg, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className={`flex flex-col max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-normal ${
-                                                        msg.role === "user"
-                                                            ? (theme === "light"
-                                                                ? "self-end bg-black/[0.05] text-black/85 rounded-br-none border border-black/[0.08]"
-                                                                : "self-end bg-white/[0.06] text-white/90 rounded-br-none border border-white/[0.08]")
-                                                            : (theme === "light"
-                                                                ? "self-start bg-emerald-500/10 text-emerald-800 rounded-bl-none border border-emerald-500/15"
-                                                                : "self-start bg-emerald-500/10 text-emerald-200 rounded-bl-none border border-emerald-500/15")
-                                                    }`}
-                                                >
-                                                    {msg.content}
-                                                </div>
-                                            ))
+                                            chatMessages.map((msg, idx) => {
+                                                const isNewest = idx === chatMessages.length - 1;
+                                                const isAssistant = msg.role !== "user";
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className={`flex flex-col max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-normal ${
+                                                            !isAssistant
+                                                                ? (theme === "light"
+                                                                    ? "self-end bg-black/[0.05] text-black/85 rounded-br-none border border-black/[0.08]"
+                                                                    : "self-end bg-white/[0.06] text-white/90 rounded-br-none border border-white/[0.08]")
+                                                                : (theme === "light"
+                                                                    ? "self-start bg-emerald-500/10 text-emerald-800 rounded-bl-none border border-emerald-500/15"
+                                                                    : "self-start bg-emerald-500/10 text-emerald-200 rounded-bl-none border border-emerald-500/15")
+                                                        }`}
+                                                    >
+                                                        {isAssistant && isNewest ? (
+                                                            <TypewriterText text={msg.content} />
+                                                        ) : (
+                                                            msg.content
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
                                         )}
 
                                         {chatLoading && (
@@ -893,15 +988,48 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
                                         <div ref={chatEndRef} />
                                     </div>
 
+                                    {/* Quick Suggestion Chips */}
+                                    {chatMessages.length === 0 && !chatLoading && (
+                                        <div className="flex flex-wrap gap-1.5 mb-3">
+                                            {(MODE_SUGGESTIONS[appMode] || MODE_SUGGESTIONS.explore).map((sugg, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    onClick={() => handleSuggestionTap(sugg)}
+                                                    className="text-[10px] font-medium text-white/60 bg-white/[0.03] border border-white/[0.06] hover:bg-emerald-500/10 hover:text-emerald-300 hover:border-emerald-500/20 px-2.5 py-1.5 rounded-full transition-all duration-200 text-left active:scale-95"
+                                                >
+                                                    {sugg}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {/* Input bar */}
                                     <form onSubmit={handleSendChatMessage} className="flex gap-2">
                                         <input
                                             type="text"
                                             value={chatInput}
                                             onChange={(e) => setChatInput(e.target.value)}
+                                            onFocus={() => {
+                                                if (onFocusChange) onFocusChange(true);
+                                                if (cardRef.current) {
+                                                    cardRef.current.scrollTop = 0;
+                                                    cardRef.current.scrollLeft = 0;
+                                                }
+                                                setTimeout(() => {
+                                                    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                }, 150);
+                                            }}
+                                            onBlur={() => {
+                                                if (onFocusChange) onFocusChange(false);
+                                                if (cardRef.current) {
+                                                    cardRef.current.scrollTop = 0;
+                                                    cardRef.current.scrollLeft = 0;
+                                                }
+                                            }}
                                             placeholder="Ask Roamie..."
                                             disabled={chatLoading}
-                                            className={`flex-1 h-9 rounded-xl px-3 text-xs focus:outline-none focus:border-emerald-500/50 transition-all disabled:opacity-50 ${
+                                            className={`flex-1 h-9 rounded-xl px-3 text-base md:text-xs focus:outline-none focus:border-emerald-500/50 transition-all disabled:opacity-50 ${
                                                 theme === "light"
                                                     ? "bg-black/[0.04] border-black/[0.08] text-black placeholder-black/40"
                                                     : "bg-white/[0.04] border-white/[0.08] text-white placeholder-white/30"
@@ -931,16 +1059,14 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme
 export default function InsightsView() {
     const { units, theme, appMode, userLocation } = useApp();
     const [sessions, setSessions] = useState([]);
-    const [photos, setPhotos] = useState([]);
     const [confirming, setConfirming] = useState(false);
     const [wiping, setWiping] = useState(false);
-    const [activePhoto, setActivePhoto] = useState(null);
+    const [isInputFocused, setIsInputFocused] = useState(false);
 
     const load = async () => {
         try {
-            const [s, p] = await Promise.all([listSessions(), listPhotos()]);
+            const s = await listSessions();
             setSessions(s);
-            setPhotos(p);
         } catch {
             /* ignore */
         }
@@ -956,7 +1082,6 @@ export default function InsightsView() {
             await clearAllData();
             haptics.success();
             setSessions([]);
-            setPhotos([]);
         } finally {
             setWiping(false);
             setConfirming(false);
@@ -1112,7 +1237,9 @@ export default function InsightsView() {
     return (
         <div
             data-testid="insights-view"
-            className="relative h-[100dvh] w-full overflow-y-auto px-5 pt-safe pb-40 tg-no-select"
+            className={`relative w-full px-5 pt-safe transition-[padding-bottom] duration-300 ease-out tg-no-select ${
+                isInputFocused ? "pb-[420px]" : "pb-40"
+            }`}
         >
             <div className="tg-ambient" />
             <motion.header
@@ -1182,10 +1309,10 @@ export default function InsightsView() {
                     categories={categories}
                     bars={bars}
                     heat={heat}
-                    photos={photos}
                     theme={theme}
                     appMode={appMode}
                     userLocation={userLocation}
+                    onFocusChange={setIsInputFocused}
                 />
 
                 {/* ── Weekly chart ───────────────────────────── */}
@@ -1545,38 +1672,6 @@ export default function InsightsView() {
                     )}
                 </Section>
 
-                {/* ── Grass Gallery ──────────────────────────── */}
-                <Section title="Grass Gallery">
-                    {photos.length === 0 ? (
-                        <div className="rounded-3xl p-6 text-center tg-glass">
-                            <div className="text-sm font-semibold text-white">
-                                Nothing to show yet.
-                            </div>
-                            <div className="mt-1 text-xs text-white/45">
-                                Verified grass moments appear here.
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-3 gap-2">
-                            {photos.map((p) => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => {
-                                        haptics.tap();
-                                        setActivePhoto(p);
-                                    }}
-                                    className="relative aspect-square overflow-hidden rounded-2xl tg-glass active:scale-95 transition-transform duration-200"
-                                >
-                                    <img
-                                        src={p.dataUrl}
-                                        alt=""
-                                        className="absolute inset-0 h-full w-full object-cover"
-                                    />
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </Section>
 
                 {/* ── Storage / clear data ───────────────────── */}
                 <Section title="Storage">
@@ -1591,7 +1686,7 @@ export default function InsightsView() {
                                     On-Device Storage
                                 </div>
                                 <div className="mt-2 text-[11px] leading-relaxed text-white/40">
-                                    Sessions, photos, and preferences live
+                                    Sessions and preferences live
                                     locally in this browser. Clearing removes
                                     them permanently from this device.
                                 </div>
@@ -1649,7 +1744,7 @@ export default function InsightsView() {
                                 Erase everything?
                             </h3>
                             <p className="mt-2 text-sm leading-relaxed text-white/55">
-                                All sessions, verified-grass photos and saved
+                                All sessions and saved
                                 preferences will be removed from this browser.
                                 This cannot be undone.
                             </p>
@@ -1679,79 +1774,6 @@ export default function InsightsView() {
                 )}
             </AnimatePresence>
 
-            {/* ── Active Photo Viewer Modal ─────────────────── */}
-            <AnimatePresence>
-                {activePhoto && (
-                    <motion.div
-                        key="photo-modal"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[70] flex items-center justify-center p-6"
-                        style={{
-                            background: theme === "light" ? "rgba(213,213,220,0.5)" : "rgba(8,8,10,0.7)",
-                            backdropFilter: "blur(18px)",
-                        }}
-                        onClick={() => setActivePhoto(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.92, opacity: 0, y: 15 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.92, opacity: 0, y: 15 }}
-                            transition={{
-                                type: "spring",
-                                stiffness: 350,
-                                damping: 30,
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="relative w-full max-w-sm rounded-[32px] p-4 tg-glass-strong shadow-2xl flex flex-col gap-4"
-                        >
-                            {/* Close button */}
-                            <button
-                                onClick={() => {
-                                    haptics.tap();
-                                    setActivePhoto(null);
-                                }}
-                                className="absolute right-6 top-6 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-md border border-white/10 active:scale-90 transition-transform"
-                                aria-label="Close"
-                            >
-                                <X size={14} strokeWidth={2.2} />
-                            </button>
-
-                            {/* Image container */}
-                            <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black/40 border border-white/5 shadow-inner">
-                                <img
-                                    src={activePhoto.dataUrl}
-                                    alt="Grass moment"
-                                    className="h-full w-full object-cover"
-                                />
-                            </div>
-
-                            {/* Info */}
-                            <div className="px-1 pb-1">
-                                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/40">
-                                    Grass Verification
-                                </div>
-                                <div className="mt-1.5 flex items-center justify-between">
-                                    <span className="text-sm font-semibold text-white/90">
-                                        {new Date(activePhoto.takenAt).toLocaleDateString(undefined, {
-                                            weekday: "short",
-                                            month: "short",
-                                            day: "numeric",
-                                            hour: "numeric",
-                                            minute: "2-digit",
-                                        })}
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                        {(activePhoto.ratio * 100).toFixed(0)}% Green
-                                    </span>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
     );
 }

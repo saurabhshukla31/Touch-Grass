@@ -59,16 +59,6 @@ export async function clearAllData() {
     ]);
 }
 
-export async function savePhoto(photo) {
-    const db = await getDB();
-    await db.put("photos", photo);
-}
-
-export async function listPhotos() {
-    const db = await getDB();
-    const all = await db.getAll("photos");
-    return all.sort((a, b) => b.takenAt - a.takenAt);
-}
 
 const SETTINGS_KEY = "user-settings";
 const DEFAULT_SETTINGS = {

@@ -17,7 +17,6 @@ import CompassView from "@/components/CompassView";
 import MapView from "@/components/MapView";
 import InsightsView from "@/components/InsightsView";
 import SettingsView from "@/components/SettingsView";
-import GrassVerification from "@/components/GrassVerification";
 import { checkAppVersion } from "@/lib/versionCheck";
 
 // Override flags for testing / dev preview.
@@ -368,14 +367,11 @@ function Shell() {
   const plannedDistanceRef = useRef(null);
 
   const [resolveError, setResolveError] = useState(null);
-  const [showVerification, setShowVerification] = useState(false);
 
-  // Auto-watch geolocation once we're active or on map/compass screens.
+  // Auto-watch geolocation once we're active or on map/compass/home/insights screens.
   useEffect(() => {
-    if (mode === "active" || currentTab === "map" || currentTab === "compass") {
-      startWatchingLocation();
-    }
-  }, [mode, currentTab, startWatchingLocation]);
+    startWatchingLocation();
+  }, [startWatchingLocation]);
 
   const handleSelectCategory = async (cat) => {
     haptics.select();
@@ -517,11 +513,6 @@ function Shell() {
         /* ignore */
       }
     }
-    // Grass arrival → offer verification before exiting.
-    if (selectedCategory?.key === "grass") {
-      setShowVerification(true);
-      return;
-    }
     resetSession();
   };
 
@@ -596,7 +587,7 @@ function Shell() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
             style={{ willChange: "opacity" }}
-            className="absolute inset-0 overflow-y-auto"
+            className="absolute inset-0 overflow-y-auto tg-scroll"
           >
             <InsightsView />
           </motion.div>
@@ -632,24 +623,6 @@ function Shell() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showVerification && (
-          <GrassVerification
-            session={{
-              id: destination?.mapboxId,
-              destinationName: destination?.name,
-            }}
-            onComplete={() => {
-              setShowVerification(false);
-              resetSession();
-            }}
-            onSkip={() => {
-              setShowVerification(false);
-              resetSession();
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       <Toaster
         position="top-center"

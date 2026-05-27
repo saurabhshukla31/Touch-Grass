@@ -1,6 +1,6 @@
 // Minimal service worker for RoamOut PWA.
 // Pre-caches the app shell and serves cached assets when offline.
-const CACHE = "touch-grass-v2";
+const CACHE = "touch-grass-v3";
 const SHELL = [
     "/",
     "/index.html",
@@ -23,7 +23,17 @@ self.addEventListener("activate", (e) => {
             .keys()
             .then((keys) =>
                 Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
-            ),
+            )
+            .then(() => self.clients.matchAll({ type: "window" }))
+            .then((clients) => {
+                for (const client of clients) {
+                    try {
+                        client.navigate(client.url);
+                    } catch (err) {
+                        /* ignore */
+                    }
+                }
+            })
     );
     self.clients.claim();
 });
