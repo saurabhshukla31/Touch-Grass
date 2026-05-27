@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Trash2,
@@ -13,6 +13,10 @@ import {
     Star,
     Route,
     X,
+    Sparkles,
+    RefreshCw,
+    Send,
+    MessageSquare,
 } from "lucide-react";
 import { listSessions, listPhotos, clearAllData } from "@/lib/db";
 import {
@@ -76,39 +80,7 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
 // StreakCard removed (replaced by standard StatCard for grid consistency)
 
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
-function WeeklyChart({ sessions, units, theme }) {
-    const bars = useMemo(() => {
-        const sessionMap = new Map();
-        sessions.forEach((s) => {
-            if (!s.startedAt) return;
-            const d = new Date(s.startedAt);
-            d.setHours(0, 0, 0, 0);
-            const time = d.getTime();
-            if (!sessionMap.has(time)) {
-                sessionMap.set(time, { distance: 0, count: 0 });
-            }
-            const record = sessionMap.get(time);
-            record.distance += s.actualDistanceKm || (s.distance || 0) / 1000;
-            record.count += 1;
-        });
-
-        const days = [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(today);
-            d.setDate(d.getDate() - i);
-            const time = d.getTime();
-            const record = sessionMap.get(time) || { distance: 0, count: 0 };
-            days.push({
-                date: d,
-                distance: record.distance,
-                sessions: record.count
-            });
-        }
-        return days;
-    }, [sessions]);
-
+function WeeklyChart({ bars, units, theme }) {
     const maxDist = Math.max(0.1, ...bars.map((b) => b.distance));
     const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -151,18 +123,8 @@ function WeeklyChart({ sessions, units, theme }) {
 }
 
 // ── Category donut chart (pure SVG) ───────────────────────────
-function CategoryDonut({ sessions, theme }) {
-    const categories = useMemo(() => {
-        const map = {};
-        sessions.forEach((s) => {
-            const key = s.categoryKey || "unknown";
-            if (!map[key]) map[key] = { key, count: 0, label: s.categoryLabel || key };
-            map[key].count++;
-        });
-        return Object.values(map).sort((a, b) => b.count - a.count);
-    }, [sessions]);
-
-    if (!categories.length) return null;
+function CategoryDonut({ categories, theme }) {
+    if (!categories || !categories.length) return null;
 
     const total = categories.reduce((a, c) => a + c.count, 0);
     const colors = [
@@ -243,11 +205,731 @@ function CategoryDonut({ sessions, theme }) {
     );
 }
 
+// ── Groq API Client helper ────────────────────────────────────
+async function fetchRoamieInsights(analyticsData, appMode) {
+    const apiKey = process.env.REACT_APP_GROQ_API_KEY;
+    if (!apiKey) {
+        throw new Error("Groq API key is not configured.");
+    }
+
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+
+    const modeContexts = {
+        explore: {
+            persona: "a rugged, high-energy adventure captain who loves exploring hidden landmarks, parks, and hidden gems.",
+            focus: "outdoor discovery, counting steps/cycling distance, hitting hidden spots, and touching grass.",
+            tone: "rugged, energetic, and highly adventurous"
+        },
+        date: {
+            persona: "a cheeky, playful cupid/romantic counselor who loves setting up perfect, cozy, or fun outdoor dates.",
+            focus: "dating ideas, romantic walks, cozy cafes, dessert places, fine dining spots, scenic lookouts, and sharing moments with a partner.",
+            tone: "romantic, cheeky, cute, and teasing"
+        },
+        escape: {
+            persona: "a calm, mindful zen nature guide who loves helping users find quiet, peaceful spots to unwind and escape the hustle.",
+            focus: "nature trails, waterfronts, quiet parks, viewing sunsets, and digital detoxing.",
+            tone: "serene, grounding, yet lighthearted and encouraging"
+        },
+        social: {
+            persona: "a lively, fun party promoter who loves organizing hangouts with friends, sports turfs, and night spots.",
+            focus: "group activities, meeting up, sports turfs, gaming cafes, clubs, pubs, and social hangouts.",
+            tone: "outgoing, loud, enthusiastic, and socially energetic"
+        },
+        essentials: {
+            persona: "a witty, practical outdoor butler who helps users turn essential daily runs into fun mini-adventures.",
+            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, or getting fuel.",
+            tone: "droll, helpful, slightly formal but witty and fun"
+        }
+    };
+
+    const ctx = modeContexts[appMode] || modeContexts.explore;
+
+    const systemPrompt = `You are Roamie, a playful, adventurous AI companion for "RoamOut", a PWA that helps users reconnect with the physical world, touch grass, and explore outside.
+The user is currently in "${appMode.toUpperCase()}" mode. You must behave specifically as ${ctx.persona}.
+Your focus is specifically on: ${ctx.focus}.
+Your tone should be ${ctx.tone}.
+
+Analyze user travel and activity data and respond with a JSON object containing exactly these two keys:
+1. "commentary": A short, cheeky, and highly playful analysis of their roam/exploration patterns specific to this mode. Keep it to 2-3 sentences.
+2. "challenges": An array of exactly 3 adventurous, fun challenges specific to this mode, tailored to their stats to encourage them to roam outside more.`;
+
+    const userPrompt = `Here is my RoamOut activity data:\n${JSON.stringify(analyticsData, null, 2)}`;
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.8,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Groq API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content;
+    if (!aiText) {
+        throw new Error("No response content received from Groq.");
+    }
+
+    try {
+        return JSON.parse(aiText.trim());
+    } catch (e) {
+        console.error("Failed to parse Groq response as JSON:", aiText);
+        const cleaned = aiText.replace(/```json|```/g, "").trim();
+        return JSON.parse(cleaned);
+    }
+}
+
+// ── Mapbox Search helper to fetch nearby places in parallel ──
+async function fetchNearbyPOIsForMode(lat, lng, appMode) {
+    const token = process.env.REACT_APP_MAPBOX_API_KEY;
+    if (!token) return [];
+
+    const modeCategories = {
+        explore: ["park", "museum", "tourist_attraction", "viewpoint"],
+        date: ["coffee_shop", "park", "restaurant", "bakery", "bookstore"],
+        escape: ["beach", "nature_preserve", "library", "park", "viewpoint"],
+        social: ["bar", "nightclub", "sports_club", "cafe"],
+        essentials: ["gas_station", "atm", "convenience_store", "hospital", "pharmacy"]
+    };
+
+    const categoriesToSearch = modeCategories[appMode] || modeCategories.explore;
+
+    const searchPromises = categoriesToSearch.slice(0, 4).map(async (cat) => {
+        try {
+            const url = `https://api.mapbox.com/search/searchbox/v1/category/${cat}?access_token=${token}&proximity=${lng},${lat}&limit=2&language=en`;
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return (data.features || []).map((f) => {
+                const props = f.properties || {};
+                const [flng, flat] = f.geometry?.coordinates || [0, 0];
+                const dx = (flng - lng) * 111 * Math.cos((lat * Math.PI) / 180);
+                const dy = (flat - lat) * 111;
+                const distanceKm = Math.sqrt(dx * dx + dy * dy);
+                return {
+                    name: props.name || props.name_preferred || "Unknown spot",
+                    address: props.full_address || props.address || "",
+                    category: cat,
+                    distanceKm: +distanceKm.toFixed(2)
+                };
+            });
+        } catch (e) {
+            console.warn("[Mapbox Chat Search] failed for", cat, e);
+            return [];
+        }
+    });
+
+    try {
+        const resultsArray = await Promise.all(searchPromises);
+        return resultsArray.flat().sort((a, b) => a.distanceKm - b.distanceKm);
+    } catch (e) {
+        console.warn("[Mapbox Chat Search] Promise.all failed", e);
+        return [];
+    }
+}
+
+// ── Groq API Chat helper ──────────────────────────────────────
+async function fetchRoamieChatResponse(chatHistory, analyticsData, currentInsights, appMode, nearbyPlaces) {
+    const apiKey = process.env.REACT_APP_GROQ_API_KEY;
+    if (!apiKey) {
+        throw new Error("Groq API key is not configured.");
+    }
+
+    const url = "https://api.groq.com/openai/v1/chat/completions";
+
+    const modeContexts = {
+        explore: {
+            persona: "a rugged, high-energy adventure captain who loves exploring hidden landmarks, parks, and hidden gems.",
+            focus: "outdoor discovery, counting steps/cycling distance, hitting hidden spots, and touching grass.",
+            tone: "rugged, energetic, and highly adventurous"
+        },
+        date: {
+            persona: "a cheeky, playful cupid/romantic counselor who loves setting up perfect, cozy, or fun outdoor dates.",
+            focus: "dating ideas, romantic walks, cozy cafes, dessert spots, fine dining, scenic lookouts, and sharing romantic moments with a partner/girlfriend.",
+            tone: "romantic, cheeky, cute, and teasing"
+        },
+        escape: {
+            persona: "a calm, mindful zen nature guide who loves helping users find quiet, peaceful spots to unwind and escape the hustle.",
+            focus: "nature trails, waterfronts, quiet parks, viewing sunsets, and digital detoxing.",
+            tone: "serene, grounding, yet lighthearted and encouraging"
+        },
+        social: {
+            persona: "a lively, fun party promoter who loves organizing hangouts with friends, sports turfs, and night spots.",
+            focus: "group activities, meeting up, sports turfs, gaming cafes, clubs, pubs, and social hangouts.",
+            tone: "outgoing, loud, enthusiastic, and socially energetic"
+        },
+        essentials: {
+            persona: "a witty, practical outdoor butler who helps users turn essential daily runs into fun mini-adventures.",
+            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, or getting fuel.",
+            tone: "droll, helpful, slightly formal but witty and fun"
+        }
+    };
+
+    const ctx = modeContexts[appMode] || modeContexts.explore;
+
+    let placesInfo = "";
+    if (nearbyPlaces && nearbyPlaces.length > 0) {
+        placesInfo = `Here are the ACTUAL, REAL nearest places found nearby the user via Mapbox Search:\n${JSON.stringify(nearbyPlaces, null, 2)}\nUse these real names, categories, and distances (in km) to answer any questions the user asks about where to go or places to visit. Do NOT hallucinate places. Suggest from this list.`;
+    } else {
+        placesInfo = `No real-time nearby GPS locations could be retrieved. If the user asks for places, advise them to enable GPS location on the main screen so you can recommend exact spots.`;
+    }
+
+    const systemPrompt = `You are Roamie, a playful, adventurous AI companion for "RoamOut", a PWA that helps users reconnect with the physical world, touch grass, and explore outside.
+The user is currently in "${appMode.toUpperCase()}" mode. You must behave specifically as ${ctx.persona}.
+Your focus is specifically on: ${ctx.focus}.
+Your tone should be ${ctx.tone}.
+Keep your answers very brief (1-3 sentences maximum) as they will be displayed in a mobile-friendly chat widget.
+
+${placesInfo}
+
+Context about the user:
+- Current activity stats: ${JSON.stringify(analyticsData.overview)}
+- Active challenges: ${JSON.stringify(currentInsights.challenges)}
+- Your recent commentary on their stats: "${currentInsights.commentary}"
+
+Respond directly to the user's latest message. Keep the conversation contextually relevant.`;
+
+    const messages = [
+        { role: "system", content: systemPrompt },
+        ...chatHistory
+    ];
+
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages,
+            temperature: 0.8,
+            max_tokens: 150,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Groq API Error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    const aiText = data.choices?.[0]?.message?.content;
+    if (!aiText) {
+        throw new Error("No response content received from Roamie.");
+    }
+
+    return aiText.trim();
+}
+
+// ── Roamie AI Insights Component ───────────────────────────────
+function RoamieInsights({ sessions, stats, categories, bars, heat, photos, theme, appMode, userLocation }) {
+    const [insights, setInsights] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatInput, setChatInput] = useState("");
+    const [chatLoading, setChatLoading] = useState(false);
+    const [chatError, setChatError] = useState(null);
+
+    const chatEndRef = useRef(null);
+    const apiKey = process.env.REACT_APP_GROQ_API_KEY;
+
+    const cacheKey = useMemo(() => {
+        const totalPhotos = photos.length;
+        const avgRatio = photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0;
+        return `roamie_${appMode}_${sessions.length}_${stats.totalActualKm.toFixed(2)}_${stats.streaks.current}_${totalPhotos}_${avgRatio.toFixed(2)}`;
+    }, [appMode, sessions.length, stats.totalActualKm, stats.streaks, photos]);
+
+    useEffect(() => {
+        if (!apiKey) return;
+        const cached = localStorage.getItem("roamout_roamie_insights");
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed.cacheKey === cacheKey) {
+                    setInsights(parsed.insights);
+                    setError(null);
+                    return;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        setInsights(null);
+    }, [cacheKey, apiKey]);
+
+    // Persist chat messages to localStorage tied to cacheKey
+    useEffect(() => {
+        if (!apiKey) return;
+        const cachedChat = localStorage.getItem("roamout_roamie_chat");
+        if (cachedChat) {
+            try {
+                const parsed = JSON.parse(cachedChat);
+                if (parsed.cacheKey === cacheKey) {
+                    setChatMessages(parsed.messages);
+                    return;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        setChatMessages([]);
+    }, [cacheKey, apiKey]);
+
+    // Scroll to bottom when messages or loading state changes
+    useEffect(() => {
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [chatMessages, chatLoading]);
+
+    const saveChatMessages = (messages) => {
+        setChatMessages(messages);
+        localStorage.setItem("roamout_roamie_chat", JSON.stringify({
+            cacheKey,
+            messages
+        }));
+    };
+
+    const handleSendChatMessage = async (e) => {
+        if (e) e.preventDefault();
+        const text = chatInput.trim();
+        if (!text || chatLoading) return;
+
+        haptics.select();
+
+        const newUserMessage = { role: "user", content: text };
+        const updatedMessages = [...chatMessages, newUserMessage];
+        
+        saveChatMessages(updatedMessages);
+        setChatInput("");
+        setChatLoading(true);
+        setChatError(null);
+
+        const analyticsData = {
+            overview: {
+                totalSessions: sessions.length,
+                totalDistanceKm: stats.totalActualKm,
+                totalDurationSec: stats.totalDurationSec,
+                averageSessionDurationSec: stats.avgDuration,
+                longestSessionSec: stats.longestSession,
+                uniquePlacesVisited: stats.uniquePlaces,
+                currentStreak: stats.streaks.current,
+                longestStreak: stats.streaks.longest,
+            },
+            activityModes: {
+                walking: {
+                    sessions: stats.walkCount,
+                    distanceKm: stats.walkKm,
+                },
+                cycling: {
+                    sessions: stats.bikeCount,
+                    distanceKm: stats.bikeKm,
+                },
+                driving: {
+                    sessions: stats.carCount,
+                },
+            },
+            categories: categories.map(c => ({
+                category: c.label,
+                count: c.count,
+            })),
+            weeklyActivity: bars.map(day => ({
+                date: day.date,
+                distanceKm: day.distance,
+                sessions: day.sessions,
+            })),
+            heatmap: heat.map(day => ({
+                date: day.date,
+                sessions: day.count,
+                activeMinutes: day.totalMin,
+            })),
+            highlights: {
+                favoriteCategory: stats.favCat,
+                mostVisitedPlace: stats.mostVisited,
+            },
+            recentSessions: sessions.slice(0, 10).map(s => ({
+                destination: s.destinationName,
+                mode: s.mode,
+                distanceKm: s.actualDistanceKm,
+                durationSec: s.durationSec,
+                averageSpeed: s.averageSpeed,
+                startedAt: s.startedAt,
+                category: s.categoryLabel,
+            })),
+            photoStats: {
+                totalPhotos: photos.length,
+                averageGreenRatio:
+                    photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0,
+            },
+        };
+
+        let nearbyPlaces = [];
+        if (userLocation && userLocation.lat && userLocation.lng) {
+            try {
+                nearbyPlaces = await fetchNearbyPOIsForMode(userLocation.lat, userLocation.lng, appMode);
+            } catch (e) {
+                console.warn("Failed to fetch nearby POIs for chat context", e);
+            }
+        }
+
+        try {
+            const responseText = await fetchRoamieChatResponse(updatedMessages, analyticsData, insights, appMode, nearbyPlaces);
+            const updatedWithAI = [...updatedMessages, { role: "assistant", content: responseText }];
+            saveChatMessages(updatedWithAI);
+            haptics.success();
+        } catch (err) {
+            console.error(err);
+            setChatError(err.message || "Failed to send message.");
+            haptics.warn();
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
+    const handleClearChat = () => {
+        haptics.select();
+        saveChatMessages([]);
+        setChatError(null);
+    };
+
+    const handleGenerate = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const analyticsData = {
+                overview: {
+                    totalSessions: sessions.length,
+                    totalDistanceKm: stats.totalActualKm,
+                    totalDurationSec: stats.totalDurationSec,
+                    averageSessionDurationSec: stats.avgDuration,
+                    longestSessionSec: stats.longestSession,
+                    uniquePlacesVisited: stats.uniquePlaces,
+                    currentStreak: stats.streaks.current,
+                    longestStreak: stats.streaks.longest,
+                },
+                activityModes: {
+                    walking: {
+                        sessions: stats.walkCount,
+                        distanceKm: stats.walkKm,
+                    },
+                    cycling: {
+                        sessions: stats.bikeCount,
+                        distanceKm: stats.bikeKm,
+                    },
+                    driving: {
+                        sessions: stats.carCount,
+                    },
+                },
+                categories: categories.map(c => ({
+                    category: c.label,
+                    count: c.count,
+                })),
+                weeklyActivity: bars.map(day => ({
+                    date: day.date,
+                    distanceKm: day.distance,
+                    sessions: day.sessions,
+                })),
+                heatmap: heat.map(day => ({
+                    date: day.date,
+                    sessions: day.count,
+                    activeMinutes: day.totalMin,
+                })),
+                highlights: {
+                    favoriteCategory: stats.favCat,
+                    mostVisitedPlace: stats.mostVisited,
+                },
+                recentSessions: sessions.slice(0, 10).map(s => ({
+                    destination: s.destinationName,
+                    mode: s.mode,
+                    distanceKm: s.actualDistanceKm,
+                    durationSec: s.durationSec,
+                    averageSpeed: s.averageSpeed,
+                    startedAt: s.startedAt,
+                    category: s.categoryLabel,
+                })),
+                photoStats: {
+                    totalPhotos: photos.length,
+                    averageGreenRatio:
+                        photos.reduce((a, p) => a + p.ratio, 0) / photos.length || 0,
+                },
+            };
+
+            const result = await fetchRoamieInsights(analyticsData, appMode);
+            setInsights(result);
+            localStorage.setItem("roamout_roamie_insights", JSON.stringify({
+                cacheKey,
+                insights: result
+            }));
+            haptics.success();
+        } catch (err) {
+            console.error(err);
+            setError(err.message || "Something went wrong consulting Roamie.");
+            haptics.warn();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!apiKey) {
+        return (
+            <Section title="Roamie AI">
+                <div className="rounded-[24px] p-5 tg-glass border-dashed border-emerald-500/20">
+                    <div className="flex gap-4">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                            <Sparkles size={16} strokeWidth={1.8} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold text-white">Meet Roamie</h3>
+                            <p className="mt-1 text-xs leading-relaxed text-white/45">
+                                Unlock your playful AI companion to analyze your roaming habits and challenge you to roam out!
+                            </p>
+                            <div className="mt-3 inline-block rounded-lg bg-emerald-500/5 px-2.5 py-1.5 border border-emerald-500/10 text-[10px] font-medium text-emerald-400/80">
+                                Set <code>REACT_APP_GROQ_API_KEY</code> in <code>frontend/.env</code> to activate.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Section>
+        );
+    }
+
+    return (
+        <Section title="Roamie AI">
+            <div className="rounded-[24px] p-5 tg-glass relative overflow-hidden">
+                <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-500/5 blur-2xl pointer-events-none" />
+                <div className="absolute -left-10 -bottom-10 h-28 w-28 rounded-full bg-blue-500/5 blur-2xl pointer-events-none" />
+
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                                <Sparkles size={14} />
+                            </div>
+                            <span className="text-xs font-bold text-white">Roamie's Take</span>
+                        </div>
+                        {insights && !loading && (
+                            <button
+                                onClick={handleGenerate}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04] text-white/50 hover:text-white hover:bg-white/[0.08]"
+                                title="Refresh insights"
+                            >
+                                <RefreshCw size={12} />
+                            </button>
+                        )}
+                    </div>
+
+                    <AnimatePresence mode="wait">
+                        {loading && (
+                            <motion.div
+                                key="loading"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="mt-5 py-6 flex flex-col items-center justify-center text-center gap-3"
+                            >
+                                <div className="relative flex h-8 w-8 items-center justify-center">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500/20 border-t-emerald-400" />
+                                    <Sparkles size={12} className="absolute text-emerald-400 animate-pulse" />
+                                </div>
+                                <div className="text-xs font-medium text-white/60">
+                                    Roamie is analyzing your stats...
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {!loading && error && (
+                            <motion.div
+                                key="error"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300"
+                            >
+                                <div className="font-semibold">Oops!</div>
+                                <div className="mt-0.5 opacity-80">{error}</div>
+                                <button
+                                    onClick={handleGenerate}
+                                    className="mt-2.5 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 rounded-lg text-[10px] font-bold text-white transition-colors"
+                                >
+                                    Try Again
+                                </button>
+                            </motion.div>
+                        )}
+
+                        {!loading && !error && !insights && (
+                            <motion.div
+                                key="get-insights"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="mt-4 flex flex-col gap-3"
+                            >
+                                <p className="text-xs text-white/50 leading-relaxed">
+                                    Ready for a playful breakdown of your outdoor roaming and some tailored adventure challenges?
+                                </p>
+                                <button
+                                    onClick={handleGenerate}
+                                    className="w-full flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-500 text-xs font-black text-white hover:bg-emerald-400 shadow-[0_4px_16px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.4)] transition-all"
+                                >
+                                    <Sparkles size={13} />
+                                    Roam with Roamie
+                                </button>
+                            </motion.div>
+                        )}
+
+                        {!loading && !error && insights && (
+                            <motion.div
+                                key="insights-display"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="mt-4 flex flex-col gap-4"
+                            >
+                                <div className="text-xs leading-relaxed text-white/80 bg-white/[0.03] p-3 rounded-xl border border-white/[0.05] italic">
+                                    "{insights.commentary}"
+                                </div>
+
+                                <div>
+                                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 mb-2">
+                                        Your Challenges
+                                    </div>
+                                    <ul className="flex flex-col gap-2">
+                                        {insights.challenges?.map((challenge, idx) => (
+                                            <li
+                                                key={idx}
+                                                className="flex items-start gap-2.5 text-xs text-white/70 bg-emerald-500/[0.02] p-2.5 rounded-xl border border-emerald-500/[0.05] hover:border-emerald-500/10 hover:bg-emerald-500/[0.04] transition-all"
+                                            >
+                                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
+                                                    {idx + 1}
+                                                </span>
+                                                <span className="leading-tight pt-0.5">{challenge}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div className={`mt-4 pt-4 border-t ${theme === "light" ? "border-black/[0.06]" : "border-white/[0.06]"}`}>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex h-5 w-5 items-center justify-center rounded bg-emerald-500/10 text-emerald-400">
+                                                <MessageSquare size={11} />
+                                            </div>
+                                            <span className={`text-[10px] font-bold uppercase tracking-[0.15em] ${theme === "light" ? "text-black/50" : "text-white/50"}`}>
+                                                Chat with Roamie
+                                            </span>
+                                        </div>
+                                        {chatMessages.length > 0 && (
+                                            <button
+                                                onClick={handleClearChat}
+                                                className="text-[9px] font-bold uppercase tracking-wider text-rose-400/60 hover:text-rose-400 transition-colors"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Chat Messages Area */}
+                                    <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1 mb-3 no-scrollbar">
+                                        {chatMessages.length === 0 ? (
+                                            <div className={`text-[11px] py-3 text-center rounded-xl border ${
+                                                theme === "light"
+                                                    ? "text-black/45 bg-black/[0.02] border-black/[0.04]"
+                                                    : "text-white/45 bg-white/[0.02] border-white/[0.04]"
+                                            }`}>
+                                                Ask me anything about your stats, challenges, or get advice on where to explore!
+                                            </div>
+                                        ) : (
+                                            chatMessages.map((msg, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`flex flex-col max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-normal ${
+                                                        msg.role === "user"
+                                                            ? (theme === "light"
+                                                                ? "self-end bg-black/[0.05] text-black/85 rounded-br-none border border-black/[0.08]"
+                                                                : "self-end bg-white/[0.06] text-white/90 rounded-br-none border border-white/[0.08]")
+                                                            : (theme === "light"
+                                                                ? "self-start bg-emerald-500/10 text-emerald-800 rounded-bl-none border border-emerald-500/15"
+                                                                : "self-start bg-emerald-500/10 text-emerald-200 rounded-bl-none border border-emerald-500/15")
+                                                    }`}
+                                                >
+                                                    {msg.content}
+                                                </div>
+                                            ))
+                                        )}
+
+                                        {chatLoading && (
+                                            <div className={`self-start flex items-center gap-1 border rounded-2xl rounded-bl-none px-3 py-2.5 text-xs ${
+                                                theme === "light"
+                                                    ? "bg-emerald-500/10 border-emerald-500/15 text-emerald-700/80"
+                                                    : "bg-emerald-500/10 border-emerald-500/15 text-emerald-400/80"
+                                            }`}>
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                            </div>
+                                        )}
+
+                                        {chatError && (
+                                            <div className="text-[10px] text-rose-300 bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl text-center">
+                                                {chatError}
+                                            </div>
+                                        )}
+                                        <div ref={chatEndRef} />
+                                    </div>
+
+                                    {/* Input bar */}
+                                    <form onSubmit={handleSendChatMessage} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            placeholder="Ask Roamie..."
+                                            disabled={chatLoading}
+                                            className={`flex-1 h-9 rounded-xl px-3 text-xs focus:outline-none focus:border-emerald-500/50 transition-all disabled:opacity-50 ${
+                                                theme === "light"
+                                                    ? "bg-black/[0.04] border-black/[0.08] text-black placeholder-black/40"
+                                                    : "bg-white/[0.04] border-white/[0.08] text-white placeholder-white/30"
+                                            }`}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!chatInput.trim() || chatLoading}
+                                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white hover:bg-emerald-400 transition-colors disabled:opacity-40 disabled:hover:bg-emerald-500"
+                                        >
+                                            <Send size={12} />
+                                        </button>
+                                    </form>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </div>
+        </Section>
+    );
+}
+
 // ══════════════════════════════════════════════════════════════
 // Main InsightsView
 // ══════════════════════════════════════════════════════════════
 export default function InsightsView() {
-    const { units, theme } = useApp();
+    const { units, theme, appMode, userLocation } = useApp();
     const [sessions, setSessions] = useState([]);
     const [photos, setPhotos] = useState([]);
     const [confirming, setConfirming] = useState(false);
@@ -281,6 +963,48 @@ export default function InsightsView() {
         }
     };
 
+    const categories = useMemo(() => {
+        const map = {};
+        sessions.forEach((s) => {
+            const key = s.categoryKey || "unknown";
+            if (!map[key]) map[key] = { key, count: 0, label: s.categoryLabel || key };
+            map[key].count++;
+        });
+        return Object.values(map).sort((a, b) => b.count - a.count);
+    }, [sessions]);
+
+    const bars = useMemo(() => {
+        const sessionMap = new Map();
+        sessions.forEach((s) => {
+            if (!s.startedAt) return;
+            const d = new Date(s.startedAt);
+            d.setHours(0, 0, 0, 0);
+            const time = d.getTime();
+            if (!sessionMap.has(time)) {
+                sessionMap.set(time, { distance: 0, count: 0 });
+            }
+            const record = sessionMap.get(time);
+            record.distance += s.actualDistanceKm || 0;
+            record.count += 1;
+        });
+
+        const days = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today);
+            d.setDate(d.getDate() - i);
+            const time = d.getTime();
+            const record = sessionMap.get(time) || { distance: 0, count: 0 };
+            days.push({
+                date: d,
+                distance: record.distance,
+                sessions: record.count
+            });
+        }
+        return days;
+    }, [sessions]);
+
     // Build O(1) date-keyed lookup dictionary and single-pass metrics aggregation
     const stats = useMemo(() => {
         let totalActualKm = 0;
@@ -297,7 +1021,7 @@ export default function InsightsView() {
         let bikeKm = 0;
 
         sessions.forEach((s) => {
-            const dist = s.actualDistanceKm || (s.distance || 0) / 1000;
+            const dist = s.actualDistanceKm || 0;
             const dur = s.durationSec || 0;
 
             totalActualKm += dist;
@@ -451,9 +1175,22 @@ export default function InsightsView() {
                     </div>
                 </Section>
 
+                {/* ── Roamie AI Insights ─────────────────────── */}
+                <RoamieInsights
+                    sessions={sessions}
+                    stats={stats}
+                    categories={categories}
+                    bars={bars}
+                    heat={heat}
+                    photos={photos}
+                    theme={theme}
+                    appMode={appMode}
+                    userLocation={userLocation}
+                />
+
                 {/* ── Weekly chart ───────────────────────────── */}
                 <Section title="This Week">
-                    <WeeklyChart sessions={sessions} units={units} theme={theme} />
+                    <WeeklyChart bars={bars} units={units} theme={theme} />
                 </Section>
 
                 {/* ── Activity heatmap (30 days) ────────────── */}
@@ -531,7 +1268,7 @@ export default function InsightsView() {
                 {/* ── Category breakdown ─────────────────────── */}
                 {sessions.length > 0 && (
                     <Section title="Categories">
-                        <CategoryDonut sessions={sessions} theme={theme} />
+                        <CategoryDonut categories={categories} theme={theme} />
                     </Section>
                 )}
 

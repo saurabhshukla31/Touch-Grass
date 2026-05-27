@@ -513,3 +513,12 @@ button,
 .light [data-testid="desktop-interstitial"] {
   background: #d1d1d6 !important;
 }
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
