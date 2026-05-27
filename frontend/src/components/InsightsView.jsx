@@ -17,6 +17,15 @@ import {
     RefreshCw,
     Send,
     MessageSquare,
+    Sun,
+    Cloud,
+    CloudRain,
+    CloudSnow,
+    CloudLightning,
+    Wind,
+    Thermometer,
+    Droplets,
+    Loader2,
 } from "lucide-react";
 import { listSessions, clearAllData } from "@/lib/db";
 import {
@@ -41,7 +50,8 @@ const MODE_EMOJIS = {
 const MODE_SUGGESTIONS = {
     explore: [
         "Suggest a hidden park nearby",
-        "Give me a walking challenge"
+        "Give me a walking challenge",
+        "Show me cool places nearby"
     ],
     date: [
         "Suggest a cozy cafe spot",
@@ -137,43 +147,196 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
 // StreakCard removed (replaced by standard StatCard for grid consistency)
 
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
-function WeeklyChart({ bars, units, theme }) {
-    const maxDist = Math.max(0.1, ...bars.map((b) => b.distance));
-    const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+function getWeatherDescription(code) {
+    if (code === 0) return "Sunny / Clear Sky";
+    if ([1, 2, 3].includes(code)) return "Partly Cloudy";
+    if ([45, 48].includes(code)) return "Foggy";
+    if ([51, 53, 55, 56, 57].includes(code)) return "Drizzling";
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Raining";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snowing";
+    if ([95, 96, 99].includes(code)) return "Thunderstorm";
+    return "Cloudy";
+}
+
+function getWeatherDetails(code) {
+    if (code === 0) {
+        return {
+            label: "Sunny",
+            desc: "Clear skies and bright sun.",
+            icon: Sun,
+            color: "from-amber-500/10 to-orange-500/10",
+            border: "rgba(245,158,11,0.2)",
+            glow: "rgba(245,158,11,0.12)",
+            iconColor: "#f59e0b",
+        };
+    }
+    if ([1, 2, 3].includes(code)) {
+        return {
+            label: "Partly Cloudy",
+            desc: "Passing clouds and mild weather.",
+            icon: Cloud,
+            color: "from-blue-450/5 to-indigo-500/5",
+            border: "rgba(99,102,241,0.15)",
+            glow: "rgba(99,102,241,0.08)",
+            iconColor: "#818cf8",
+        };
+    }
+    if ([45, 48].includes(code)) {
+        return {
+            label: "Foggy",
+            desc: "Reduced visibility, drive carefully.",
+            icon: Cloud,
+            color: "from-slate-450/5 to-gray-500/5",
+            border: "rgba(107,114,128,0.15)",
+            glow: "rgba(107,114,128,0.05)",
+            iconColor: "#9ca3af",
+        };
+    }
+    if ([51, 53, 55, 56, 57].includes(code)) {
+        return {
+            label: "Drizzle",
+            desc: "Light mist and damp conditions.",
+            icon: CloudRain,
+            color: "from-cyan-500/5 to-blue-500/5",
+            border: "rgba(59,130,246,0.15)",
+            glow: "rgba(59,130,246,0.08)",
+            iconColor: "#60a5fa",
+        };
+    }
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
+        return {
+            label: "Rainy",
+            desc: "Continuous rainfall. Grab an umbrella!",
+            icon: CloudRain,
+            color: "from-blue-500/10 to-indigo-950/10",
+            border: "rgba(37,99,235,0.2)",
+            glow: "rgba(37,99,235,0.15)",
+            iconColor: "#2563eb",
+        };
+    }
+    if ([71, 73, 75, 77, 85, 86].includes(code)) {
+        return {
+            label: "Snowy",
+            desc: "Cold snow fall and slippery ground.",
+            icon: CloudSnow,
+            color: "from-sky-100/5 to-blue-300/5",
+            border: "rgba(186,230,253,0.2)",
+            glow: "rgba(186,230,253,0.1)",
+            iconColor: "#38bdf8",
+        };
+    }
+    if ([95, 96, 99].includes(code)) {
+        return {
+            label: "Thunderstorm",
+            desc: "Severe lightning and heavy rain.",
+            icon: CloudLightning,
+            color: "from-indigo-950/15 to-purple-950/15",
+            border: "rgba(124,58,237,0.2)",
+            glow: "rgba(124,58,237,0.15)",
+            iconColor: "#8b5cf6",
+        };
+    }
+    return {
+        label: "Cloudy",
+        desc: "Overcast skies and gray weather.",
+        icon: Cloud,
+        color: "from-slate-450/5 to-slate-650/5",
+        border: "rgba(148,163,184,0.15)",
+        glow: "rgba(148,163,184,0.05)",
+        iconColor: "#94a3b8",
+    };
+}
+
+function WeatherCard({ weather, loading, error, theme }) {
+    if (loading) {
+        return (
+            <div className="rounded-[24px] p-6 text-center tg-glass flex items-center justify-center gap-3">
+                <Loader2 size={18} className="animate-spin text-emerald-400" />
+                <span className="text-sm font-semibold text-white/70">Fetching local weather...</span>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="rounded-[24px] p-6 text-center tg-glass">
+                <div className="text-sm font-semibold text-white/80">{error}</div>
+                <div className="mt-1 text-xs text-white/40">Provide location access to get real-time weather.</div>
+            </div>
+        );
+    }
+
+    if (!weather) {
+        return (
+            <div className="rounded-[24px] p-6 text-center tg-glass">
+                <div className="text-sm font-semibold text-white/80">No Weather Data</div>
+                <div className="mt-1 text-xs text-white/40">Waiting for location fix...</div>
+            </div>
+        );
+    }
+
+    const details = getWeatherDetails(weather.code);
+    const WeatherIcon = details.icon;
 
     return (
-        <div className="rounded-[24px] p-5 tg-glass">
-            <div className="flex items-end justify-between gap-3 px-1" style={{ height: 110 }}>
-                {bars.map((b, i) => {
-                    const pct = Math.max(8, (b.distance / maxDist) * 100);
-                    const hasData = b.distance > 0;
-                    return (
-                        <div key={i} className="flex flex-1 h-full flex-col justify-end items-center">
-                            <div
-                                className="w-full rounded-full transition-all duration-500"
-                                style={{
-                                    height: hasData ? `${pct}%` : "6px",
-                                    background: hasData
-                                        ? "linear-gradient(to top, rgba(var(--mode-accent-rgb), 0.3) 0%, rgba(var(--mode-accent-rgb), 0.85) 100%)"
-                                        : (theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"),
-                                    boxShadow: hasData
-                                        ? "0 0 16px rgba(var(--mode-accent-rgb), 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
-                                        : "none",
-                                }}
-                            />
-                        </div>
-                    );
-                })}
-            </div>
-            <div className="mt-3 flex justify-between gap-3 px-1">
-                {bars.map((b, i) => (
-                    <div
-                        key={i}
-                        className={`flex-1 text-center text-[10px] font-bold ${theme === "light" ? "text-black/30" : "text-white/30"}`}
-                    >
-                        {dayLabels[b.date.getDay()]}
+        <div className="rounded-[24px] p-5 tg-glass flex flex-col">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-black/10 border border-white/5 shadow-inner">
+                        <WeatherIcon size={32} style={{ color: details.iconColor }} className="animate-pulse" />
                     </div>
-                ))}
+                    <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40">
+                            Current Conditions
+                        </div>
+                        <div className="text-lg font-black text-white tracking-tight leading-none mt-1">
+                            {details.label}
+                        </div>
+                        <div className="text-xs text-white/50 mt-1 leading-none">{details.desc}</div>
+                    </div>
+                </div>
+
+                <div className="text-right">
+                    <div className="text-[32px] font-black text-white tracking-tighter leading-none">
+                        {Math.round(weather.temp)}
+                        <span className="text-[20px] font-bold align-super">{weather.unitTemp}</span>
+                    </div>
+                    <div className="text-[10px] font-bold text-white/40 mt-1">
+                        Feels like {Math.round(weather.apparentTemp)}{weather.unitTemp}
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-2 pt-4 border-t border-white/5">
+                <div className="text-center rounded-xl p-2 bg-white/[0.02] border border-white/[0.03]">
+                    <div className="flex justify-center text-white/30 mb-0.5">
+                        <Droplets size={12} />
+                    </div>
+                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                        Humidity
+                    </div>
+                    <div className="text-xs font-black text-white mt-0.5">{weather.humidity}%</div>
+                </div>
+                <div className="text-center rounded-xl p-2 bg-white/[0.02] border border-white/[0.03]">
+                    <div className="flex justify-center text-white/30 mb-0.5">
+                        <Wind size={12} />
+                    </div>
+                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                        Wind
+                    </div>
+                    <div className="text-xs font-black text-white mt-0.5">
+                        {Math.round(weather.windSpeed)} <span className="text-[9px] font-bold">{weather.unitWind}</span>
+                    </div>
+                </div>
+                <div className="text-center rounded-xl p-2 bg-white/[0.02] border border-white/[0.03]">
+                    <div className="flex justify-center text-white/30 mb-0.5">
+                        <CloudRain size={12} />
+                    </div>
+                    <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">
+                        Precip
+                    </div>
+                    <div className="text-xs font-black text-white mt-0.5">{weather.precipitation} mm</div>
+                </div>
             </div>
         </div>
     );
@@ -306,10 +469,10 @@ The user is currently in "${appMode.toUpperCase()}" mode. You must behave specif
 Your focus is specifically on: ${ctx.focus}.
 Your tone should be ${ctx.tone}.
 
-Analyze user travel and activity data and respond with a JSON object containing exactly these four keys:
-1. "title": A short, catchy, 2-3 word adventure persona title based on their roaming pattern (e.g. "Waterfront Wanderer", "Urban Pavement Crusher", "Zen Path Seeker").
-2. "commentary": A short, cheeky, and highly playful analysis of their roam/exploration patterns specific to this mode. Keep it to 2-3 sentences.
-3. "metricName": A creative, custom metric name related to their style in this mode (e.g. "Zen Vibe Level", "Errand Mastery", "Cupid Readiness").
+Analyze user travel, activity, and weather data (which contains real-time temperature, precipitation, wind, humidity, and condition details) and respond with a JSON object containing exactly these four keys:
+1. "title": A short, catchy, 2-3 word adventure persona title based on their roaming pattern and current weather state (e.g. "Waterfront Wanderer", "Storm Chasing Explorer", "Sunny Trail blazer").
+2. "commentary": A short, cheeky, and highly playful analysis of their roam/exploration patterns specific to this mode and the current weather. Keep it to 2-3 sentences. Feel free to praise them for going out in rain/snow or encourage them depending on conditions.
+3. "metricName": A creative, custom metric name related to their style in this mode (e.g. "Zen Vibe Level", "Errand Mastery", "Cupid Readiness", "Rain Resilience").
 4. "metricValue": A creative score or grade for the metric (e.g. "95/100", "A+", "Elite", "Wanderer II").`;
 
     const userPrompt = `Here is my RoamOut activity data:\n${JSON.stringify(analyticsData, null, 2)}`;
@@ -460,6 +623,7 @@ ${placesInfo}
 
 Context about the user:
 - Current activity stats: ${JSON.stringify(analyticsData.overview)}
+- Current weather: ${JSON.stringify(analyticsData.currentWeather || "Unavailable")} (Reflect on these real-time conditions. If it's rainy, stormy, sunny, etc., react accordingly in your mode's tone and suggest weather-appropriate ideas!)
 - Your recent persona title for them: "${currentInsights?.title || "Roamer"}"
 - Your recent commentary on their stats: "${currentInsights?.commentary}"
 - Their custom metric: ${currentInsights?.metricName || "Grass Touched"}: ${currentInsights?.metricValue || "100%"}
@@ -500,7 +664,7 @@ Respond directly to the user's latest message. Keep the conversation contextuall
 }
 
 // ── Roamie AI Insights Component ───────────────────────────────
-function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMode, userLocation, onFocusChange }) {
+function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMode, userLocation, onFocusChange, weather }) {
     const [insights, setInsights] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -515,8 +679,9 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
     const apiKey = process.env.REACT_APP_GROQ_API_KEY;
 
     const cacheKey = useMemo(() => {
-        return `roamie_${appMode}_${sessions.length}_${stats.totalActualKm.toFixed(2)}_${stats.streaks.current}`;
-    }, [appMode, sessions.length, stats.totalActualKm, stats.streaks]);
+        const weatherKey = weather ? `${weather.code}_${Math.round(weather.temp)}` : "no_weather";
+        return `roamie_${appMode}_${sessions.length}_${stats.totalActualKm.toFixed(2)}_${stats.streaks.current}_${weatherKey}`;
+    }, [appMode, sessions.length, stats.totalActualKm, stats.streaks, weather]);
 
     useEffect(() => {
         if (!apiKey) return;
@@ -584,6 +749,14 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                 currentStreak: stats.streaks.current,
                 longestStreak: stats.streaks.longest,
             },
+            currentWeather: weather ? {
+                temperature: `${weather.temp}${weather.unitTemp}`,
+                feelsLike: `${weather.apparentTemp}${weather.unitTemp}`,
+                condition: getWeatherDescription(weather.code),
+                humidity: `${weather.humidity}%`,
+                windSpeed: `${weather.windSpeed} ${weather.unitWind}`,
+                precipitation: `${weather.precipitation} mm`
+            } : "Unknown/unavailable",
             activityModes: {
                 walking: {
                     sessions: stats.walkCount,
@@ -697,6 +870,14 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                     currentStreak: stats.streaks.current,
                     longestStreak: stats.streaks.longest,
                 },
+                currentWeather: weather ? {
+                    temperature: `${weather.temp}${weather.unitTemp}`,
+                    feelsLike: `${weather.apparentTemp}${weather.unitTemp}`,
+                    condition: getWeatherDescription(weather.code),
+                    humidity: `${weather.humidity}%`,
+                    windSpeed: `${weather.windSpeed} ${weather.unitWind}`,
+                    precipitation: `${weather.precipitation} mm`
+                } : "Unknown/unavailable",
                 activityModes: {
                     walking: {
                         sessions: stats.walkCount,
@@ -1063,6 +1244,58 @@ export default function InsightsView() {
     const [wiping, setWiping] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false);
 
+    const [weather, setWeather] = useState(null);
+    const [weatherLoading, setWeatherLoading] = useState(false);
+    const [weatherError, setWeatherError] = useState(null);
+
+    useEffect(() => {
+        if (!userLocation || !userLocation.lat || !userLocation.lng) {
+            setWeatherError("Enable GPS location to see current weather.");
+            return;
+        }
+
+        let isMounted = true;
+        async function fetchWeather() {
+            setWeatherLoading(true);
+            setWeatherError(null);
+            try {
+                const lat = userLocation.lat;
+                const lng = userLocation.lng;
+                const res = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m`
+                );
+                if (!res.ok) throw new Error("Failed to fetch weather data.");
+                const data = await res.json();
+                if (isMounted && data.current) {
+                    const current = data.current;
+                    setWeather({
+                        temp: current.temperature_2m,
+                        apparentTemp: current.apparent_temperature,
+                        humidity: current.relative_humidity_2m,
+                        precipitation: current.precipitation,
+                        windSpeed: current.wind_speed_10m,
+                        code: current.weather_code,
+                        unitTemp: data.current_units?.temperature_2m || "°C",
+                        unitWind: data.current_units?.wind_speed_10m || "km/h",
+                    });
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setWeatherError("Failed to load weather.");
+                    console.error(err);
+                }
+            } finally {
+                if (isMounted) {
+                    setWeatherLoading(false);
+                }
+            }
+        }
+        fetchWeather();
+        return () => {
+            isMounted = false;
+        };
+    }, [userLocation]);
+
     const load = async () => {
         try {
             const s = await listSessions();
@@ -1313,83 +1546,12 @@ export default function InsightsView() {
                     appMode={appMode}
                     userLocation={userLocation}
                     onFocusChange={setIsInputFocused}
+                    weather={weather}
                 />
 
-                {/* ── Weekly chart ───────────────────────────── */}
-                <Section title="This Week">
-                    <WeeklyChart bars={bars} units={units} theme={theme} />
-                </Section>
-
-                {/* ── Activity heatmap (30 days) ────────────── */}
-                <Section title="Activity · 30 days">
-                    <div className="rounded-[24px] p-5 tg-glass">
-                        <div className="grid grid-cols-10 gap-2">
-                            {heat.map((d, i) => {
-                                const intensity =
-                                    (d.totalMin || d.count) / maxHeat;
-                                const active = d.count > 0;
-                                return (
-                                    <button
-                                        key={i}
-                                        className="aspect-square rounded-[8px] transition-transform active:scale-95 duration-200"
-                                        style={{
-                                            background: active
-                                                ? `rgba(16, 185, 129, ${0.3 + intensity * 0.65})`
-                                                : (theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"),
-                                            boxShadow: active
-                                                ? `inset 0 0 0 1px rgba(16, 185, 129, 0.25), 0 0 ${4 + intensity * 8}px rgba(16, 185, 129, ${0.15 + intensity * 0.45})`
-                                                : "none",
-                                        }}
-                                        onClick={() =>
-                                            setHeatTip(
-                                                heatTip?.i === i ? null : { ...d, i },
-                                            )
-                                        }
-                                    />
-                                );
-                            })}
-                        </div>
-                        <AnimatePresence>
-                            {heatTip && (
-                                <motion.div
-                                    key="tip"
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 4 }}
-                                    className="mt-3 flex items-center gap-3 rounded-xl bg-white/[0.06] px-3 py-2 text-xs text-white/70"
-                                >
-                                    <span className="font-semibold">
-                                        {heatTip.date.toLocaleDateString(
-                                            undefined,
-                                            {
-                                                weekday: "short",
-                                                month: "short",
-                                                day: "numeric",
-                                            },
-                                        )}
-                                    </span>
-                                    <span className="text-white/35">·</span>
-                                    <span>
-                                        {heatTip.count}{" "}
-                                        {heatTip.count === 1
-                                            ? "session"
-                                            : "sessions"}
-                                    </span>
-                                    {heatTip.totalMin > 0 && (
-                                        <>
-                                            <span className="text-white/35">
-                                                ·
-                                            </span>
-                                            <span>
-                                                {Math.round(heatTip.totalMin)}{" "}
-                                                min
-                                            </span>
-                                        </>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                {/* ── Weather Section ───────────────────────────── */}
+                <Section title="Current Weather">
+                    <WeatherCard weather={weather} loading={weatherLoading} error={weatherError} theme={theme} />
                 </Section>
 
                 {/* ── Category breakdown ─────────────────────── */}

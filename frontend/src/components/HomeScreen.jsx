@@ -98,7 +98,7 @@ function CategoryCard({ category, onSelect, theme, variant = "standard" }) {
 }
 
 const MODE_HEADINGS = {
-    explore: "Where do you want to go?",
+    explore: "Where would you like to go?",
     date: "Planning something memorable?",
     escape: "Need a break from it all?",
     social: "Where’s the crew heading?",
@@ -123,7 +123,7 @@ export default function HomeScreen({ onSelectCategory }) {
     return (
         <div
             data-testid="home-screen"
-            className="relative flex h-[100dvh] w-full flex-col overflow-hidden px-5 pt-safe pb-[110px] justify-center tg-no-select"
+            className="relative flex h-[100dvh] w-full flex-col overflow-hidden px-5 pt-safe pb-[90px] justify-center tg-no-select"
         >
             <div className="tg-ambient" />
 
