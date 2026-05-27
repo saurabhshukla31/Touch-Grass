@@ -167,7 +167,7 @@ export default function SettingsView() {
                     <span>V.{APP_VERSION}</span>
                 </div>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
-                    How you touch grass.
+                    How you Roam Out.
                 </h1>
             </motion.header>
 

@@ -166,7 +166,7 @@ function SplashScreen() {
                 : "0 0 30px rgba(34, 197, 94, 0.4)",
             }}
           >
-            Touch Grass
+            RoamOut
           </h1>
           <p className="text-[10px] font-bold tracking-[0.15em] text-white/35">
             FIND NATURE · FEEL ALIVE

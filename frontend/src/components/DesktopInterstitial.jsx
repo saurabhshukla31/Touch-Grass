@@ -14,7 +14,7 @@ export default function DesktopInterstitial() {
                     <Leaf size={28} className="text-emerald-400" />
                 </div>
                 <h1 className="mb-3 text-2xl font-black tracking-tight text-white">
-                    Touch Grass is a mobile experience.
+                    RoamOut is a mobile experience.
                 </h1>
                 <p className="text-sm leading-relaxed text-white/55">
                     Open this page on your phone to begin. The compass, the map,

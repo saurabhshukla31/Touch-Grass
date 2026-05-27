@@ -1,4 +1,4 @@
-# Touch Grass
+# RoamOut
 
 A premium, mobile-first Progressive Web App (PWA) designed to reconnect users with the physical world. Follow along with real-time compass and map guides to step outside, explore nearby points of interest, and verify your presence in nature through on-device camera analysis.
 
@@ -28,7 +28,7 @@ A premium, mobile-first Progressive Web App (PWA) designed to reconnect users wi
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd "Touch Grass"
+cd "RoamOut"
 
 # Configure Environment
 # Create a .env file in the frontend/ folder with:

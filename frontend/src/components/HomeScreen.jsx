@@ -16,7 +16,7 @@ function CategoryCard({ category, onSelect, theme, variant = "standard" }) {
     const tapScale = isHero ? 0.98 : 0.97;
     const heightClass = isHero ? "h-full" : "h-[115px]";
     const roundedClass = isHero ? "rounded-[26px]" : "rounded-2xl";
-    
+
     const borderOpacityLight = isHero ? "B3" : "A6";
     const borderOpacityDark = isHero ? "66" : "59";
 
@@ -41,7 +41,7 @@ function CategoryCard({ category, onSelect, theme, variant = "standard" }) {
     const shadowFilter = theme === "light"
         ? (isHero ? `drop-shadow(0 1.5px 2.5px rgba(0, 0, 0, 0.16))` : `drop-shadow(0 1px 2px rgba(0, 0, 0, 0.14))`)
         : (isHero ? `drop-shadow(0 0 8px ${glowColor}66)` : `drop-shadow(0 0 6px ${glowColor}66)`);
-        
+
     const textClass = isHero ? "text-[20px] font-black" : "text-[13px] font-extrabold";
     const gapClass = isHero ? "gap-2.5" : "gap-2";
 

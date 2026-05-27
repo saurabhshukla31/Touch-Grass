@@ -1,4 +1,4 @@
-// Minimal service worker for Touch Grass PWA.
+// Minimal service worker for RoamOut PWA.
 // Pre-caches the app shell and serves cached assets when offline.
 const CACHE = "touch-grass-v2";
 const SHELL = [
