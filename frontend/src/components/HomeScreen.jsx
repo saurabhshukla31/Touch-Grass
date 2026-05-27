@@ -23,8 +23,8 @@ function HeroCard({ category, onSelect, theme }) {
             className="group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[26px] tg-glass tg-no-select"
             style={{
                 border: theme === "light"
-                    ? "1px solid rgba(0, 0, 0, 0.06)"
-                    : `1px solid ${accentColor}33`,
+                    ? `1px solid ${accentColor}B3`
+                    : `1px solid ${accentColor}66`,
                 boxShadow: theme === "light"
                     ? `0 4px 10px rgba(0, 0, 0, 0.01), 0 10px 24px rgba(0, 0, 0, 0.03), 0 20px 38px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px ${glowColor}0D`
                     : `0 4px 12px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 10px ${glowColor}33, inset 0 0 6px ${glowColor}20, inset 0 1px 0 rgba(255, 255, 255, 0.04)`
@@ -76,8 +76,8 @@ function StandardCard({ category, onSelect, theme }) {
             className="group relative flex h-[115px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl tg-glass tg-no-select"
             style={{
                 border: theme === "light"
-                    ? "1px solid rgba(0, 0, 0, 0.05)"
-                    : `1px solid rgba(255, 255, 255, 0.04)`,
+                    ? `1px solid ${accentColor}A6`
+                    : `1px solid ${accentColor}59`,
                 boxShadow: theme === "light"
                     ? `0 4px 8px rgba(0, 0, 0, 0.01), 0 8px 16px rgba(0, 0, 0, 0.02), 0 16px 28px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 0 6px ${glowColor}08`
                     : `0 4px 10px rgba(0, 0, 0, 0.25), 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 8px ${glowColor}22, inset 0 0 4px ${glowColor}15, inset 0 1px 0 rgba(255, 255, 255, 0.03)`
@@ -113,10 +113,19 @@ function StandardCard({ category, onSelect, theme }) {
 }
 
 export default function HomeScreen({ onSelectCategory }) {
-    const { appMode, theme } = useApp();
+    const { appMode, theme, changeAppMode } = useApp();
     const config = MODES[appMode] || MODES.explore;
     const grass = getCategoryByKey(config.mainKey);
     const rest = config.gridKeys.map((k) => getCategoryByKey(k)).filter(Boolean);
+
+    const handleToggleMode = () => {
+        haptics.success();
+        const modeKeys = Object.keys(MODES);
+        const currentIndex = modeKeys.indexOf(appMode);
+        const nextIndex = (currentIndex + 1) % modeKeys.length;
+        const nextMode = modeKeys[nextIndex];
+        changeAppMode(nextMode);
+    };
 
     return (
         <div
@@ -131,9 +140,36 @@ export default function HomeScreen({ onSelectCategory }) {
                 transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
                 className="relative z-10 pt-5 pb-5 w-full max-w-[400px] mx-auto"
             >
-                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/35">
-                    Touch Grass
-                </div>
+                <motion.button
+                    data-testid="mode-cycle-tile"
+                    onClick={handleToggleMode}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] border transition-all duration-300 tg-no-select"
+                    style={{
+                        background: theme === "light"
+                            ? "rgba(var(--mode-accent-rgb), 0.06)"
+                            : "rgba(var(--mode-accent-rgb), 0.08)",
+                        borderColor: theme === "light"
+                            ? "rgba(var(--mode-accent-rgb), 0.25)"
+                            : "rgba(var(--mode-accent-rgb), 0.3)",
+                        color: "var(--mode-accent)",
+                        boxShadow: theme === "light"
+                            ? "0 2px 8px rgba(var(--mode-accent-rgb), 0.05)"
+                            : "0 4px 12px rgba(var(--mode-accent-rgb), 0.15)",
+                    }}
+                >
+                    {(() => {
+                        const currentModeObj = MODES[appMode] || MODES.explore;
+                        const ModeIcon = currentModeObj.icon;
+                        return (
+                            <>
+                                {ModeIcon && <ModeIcon size={10} strokeWidth={2.5} className="opacity-75" />}
+                                <span>{currentModeObj.label} Mode</span>
+                            </>
+                        );
+                    })()}
+                </motion.button>
                 <h1
                     data-testid="home-heading"
                     className="mt-2 text-[36px] font-black leading-[1.05] tracking-tight text-white"

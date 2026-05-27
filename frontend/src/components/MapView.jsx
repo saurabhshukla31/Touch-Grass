@@ -416,9 +416,9 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 </svg>
             `;
 
-            const dotRingBorderColor = theme === "light" ? "#ffffff" : "#08080A";
+            const dotRingBorderColor = theme === "light" ? "#a0a0a8" : "#08080A";
             const dotRing = document.createElement("div");
-            dotRing.style.cssText = `width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 3px 8px rgba(0,0,0,0.25);border:2px solid ${dotRingBorderColor};display:flex;align-items:center;justify-content:center;z-index:2;`;
+            dotRing.style.cssText = `width:20px;height:20px;border-radius:50%;background:${theme === "light" ? "#b8b8c0" : "#ffffff"};box-shadow:0 3px 8px rgba(0,0,0,0.25);border:2px solid ${dotRingBorderColor};display:flex;align-items:center;justify-content:center;z-index:2;`;
             dotRing.setAttribute("data-testid", "user-marker");
 
             const innerDot = document.createElement("div");
@@ -447,7 +447,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
 
             const dotRing = wrap.querySelector("[data-testid='user-marker']");
             if (dotRing) {
-                dotRing.style.borderColor = theme === "light" ? "#ffffff" : "#08080A";
+                dotRing.style.borderColor = theme === "light" ? "#a0a0a8" : "#08080A";
+                dotRing.style.background = theme === "light" ? "#b8b8c0" : "#ffffff";
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -472,7 +473,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 "dest-marker"
             );
 
-            const destBg = theme === "light" ? "rgba(255,255,255,0.95)" : "rgba(20,20,24,0.85)";
+            const destBg = theme === "light" ? "rgba(220,220,225,0.95)" : "rgba(20,20,24,0.85)";
             const destBoxShadow = theme === "light"
                 ? `0 8px 24px rgba(0,0,0,0.12), 0 0 0 4px ${accentColor}1A`
                 : `0 8px 24px rgba(0,0,0,0.5), 0 0 0 4px ${accentColor}15`;
@@ -1073,7 +1074,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                             }}
                             className={`absolute left-4 right-4 z-30 rounded-2xl p-4 backdrop-blur-xl shadow-2xl border transition-colors duration-300 ${
                                 theme === "light"
-                                    ? "bg-white/80 border-black/10 shadow-black/5"
+                                    ? "bg-[#d1d1d6]/95 border-black/20 shadow-black/5"
                                     : "bg-black/65 border-white/10"
                             }`}
                             style={{

@@ -73,34 +73,7 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
     );
 }
 
-function StreakCard({ value }) {
-    return (
-        <div 
-            className="relative flex flex-col items-center justify-center text-center gap-1.5 rounded-[24px] p-4.5 overflow-hidden tg-glass"
-            style={{
-                border: "1px solid rgba(245, 158, 11, 0.25)",
-                background: "linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, var(--card-bg) 100%)",
-                boxShadow: "0 8px 32px rgba(245, 158, 11, 0.03)"
-            }}
-        >
-            <div className="text-amber-500 relative flex items-center justify-center mb-0.5">
-                <Flame size={18} strokeWidth={2.5} className="relative z-10 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
-                <motion.div
-                    className="absolute inset-0 rounded-full bg-amber-500/20"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
-                    transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
-                    style={{ width: 18, height: 18 }}
-                />
-            </div>
-            <div className="text-[19px] font-black tracking-tight text-white leading-none">
-                {value}
-            </div>
-            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">
-                Streak
-            </div>
-        </div>
-    );
-}
+// StreakCard removed (replaced by standard StatCard for grid consistency)
 
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
 function WeeklyChart({ sessions, units, theme }) {
@@ -142,10 +115,10 @@ function WeeklyChart({ sessions, units, theme }) {
                                 style={{
                                     height: hasData ? `${pct}%` : "6px",
                                     background: hasData
-                                        ? "linear-gradient(to top, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.9) 100%)"
+                                        ? "linear-gradient(to top, rgba(var(--mode-accent-rgb), 0.3) 0%, rgba(var(--mode-accent-rgb), 0.85) 100%)"
                                         : (theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"),
                                     boxShadow: hasData
-                                        ? "0 0 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+                                        ? "0 0 16px rgba(var(--mode-accent-rgb), 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
                                         : "none",
                                 }}
                             />
@@ -440,7 +413,12 @@ export default function InsightsView() {
                             icon={MapPin}
                             color="blue"
                         />
-                        <StreakCard value={`${stats.streaks.current}d`} />
+                        <StatCard
+                            label="Streak"
+                            value={`${stats.streaks.current}d`}
+                            icon={Flame}
+                            color="amber"
+                        />
                         <StatCard
                             label="Time"
                             value={formatDuration(stats.totalDurationSec)}

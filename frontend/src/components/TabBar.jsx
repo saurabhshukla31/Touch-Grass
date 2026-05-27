@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Home, Compass, Map as MapIcon, ChartNoAxesCombined, Settings } from "lucide-react";
 import { haptics } from "@/lib/haptics";
+import { useApp } from "@/lib/AppState";
 
 const TABS = [
     { key: "home", label: "Home", Icon: Home },
@@ -12,6 +13,8 @@ const TABS = [
 ];
 
 export default function TabBar({ currentTab, onChange }) {
+    const { theme } = useApp();
+
     return (
         <div
             data-testid="tab-bar"
@@ -25,24 +28,38 @@ export default function TabBar({ currentTab, onChange }) {
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
                 style={{
-                    background:
-                        "linear-gradient(to top, rgba(8,8,10,0.9) 0%, rgba(8,8,10,0.55) 50%, rgba(8,8,10,0) 100%)",
+                    background: theme === "light"
+                        ? "linear-gradient(to top, rgba(209,209,214,0.95) 0%, rgba(209,209,214,0.55) 50%, rgba(209,209,214,0) 100%)"
+                        : "linear-gradient(to top, rgba(8,8,10,0.9) 0%, rgba(8,8,10,0.55) 50%, rgba(8,8,10,0) 100%)",
                 }}
             />
             <motion.nav
                 initial={{ opacity: 0, y: 32 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 280, damping: 26 }}
-                className="pointer-events-auto relative flex w-full items-center justify-between gap-1 rounded-[26px] p-1.5 tg-glass-strong tg-no-select"
+                className="pointer-events-auto relative flex w-full items-center justify-between gap-1 rounded-[26px] p-1.5 tg-no-select"
                 style={{
-                    boxShadow:
-                        "inset 0 1px 1px rgba(255,255,255,0.10), 0 24px 60px rgba(0,0,0,0.85), 0 2px 0 rgba(255,255,255,0.04)",
+                    background: theme === "light"
+                        ? "rgba(205, 205, 212, 0.7)"
+                        : "rgba(12, 12, 16, 0.72)",
+                    border: theme === "light"
+                        ? "1px solid rgba(0, 0, 0, 0.15)"
+                        : "0.5px solid rgba(255, 255, 255, 0.12)",
+                    backdropFilter: theme === "light"
+                        ? "blur(36px) saturate(180%)"
+                        : "blur(40px) saturate(210%)",
+                    WebkitBackdropFilter: theme === "light"
+                        ? "blur(36px) saturate(180%)"
+                        : "blur(40px) saturate(210%)",
+                    boxShadow: theme === "light"
+                        ? "inset 0 1px 0 rgba(255,255,255,0.7), 0 12px 32px rgba(0,0,0,0.04)"
+                        : "inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 60px rgba(0,0,0,0.85), 0 2px 0 rgba(255,255,255,0.03)",
                 }}
             >
                 {TABS.map(({ key, label, Icon }) => {
                     const isActive = currentTab === key;
                     return (
-                        <motion.button
+                        <button
                             key={key}
                             data-testid={`tab-${key}`}
                             onClick={() => {
@@ -50,31 +67,33 @@ export default function TabBar({ currentTab, onChange }) {
                                 onChange(key);
                             }}
                             aria-label={label}
-                            layout
-                            transition={{
-                                type: "spring",
-                                stiffness: 380,
-                                damping: 32,
-                            }}
                             className={`relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-[20px] text-[11px] font-semibold ${isActive
                                     ? "flex-[2] gap-1.5 px-3 text-white"
                                     : "flex-1 text-white/55"
                                 }`}
+                            style={{
+                                transition: "flex 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s, background-color 0.15s",
+                            }}
                         >
                             {isActive && (
                                 <motion.span
                                     layoutId="tab-pill"
-                                    className="absolute inset-0 rounded-[20px] tg-tab-pill"
+                                    className="absolute inset-0 rounded-[20px]"
                                     transition={{
                                         type: "spring",
-                                        stiffness: 380,
-                                        damping: 32,
+                                        stiffness: 550,
+                                        damping: 38,
                                     }}
                                     style={{
-                                        background:
-                                            "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 100%)",
-                                        boxShadow:
-                                            "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.25), 0 6px 16px rgba(0,0,0,0.4)",
+                                        background: theme === "light"
+                                            ? "rgba(215, 215, 222, 0.7)"
+                                            : "rgba(255, 255, 255, 0.08)",
+                                        border: theme === "light"
+                                            ? "1px solid rgba(var(--mode-accent-rgb), 0.22)"
+                                            : "0.5px solid rgba(var(--mode-accent-rgb), 0.35)",
+                                        boxShadow: theme === "light"
+                                            ? "0 4px 12px rgba(var(--mode-accent-rgb), 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.35)"
+                                            : "inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -1px 0 rgba(0, 0, 0, 0.2), 0 4px 16px rgba(var(--mode-accent-rgb), 0.28)",
                                     }}
                                 />
                             )}
@@ -87,13 +106,13 @@ export default function TabBar({ currentTab, onChange }) {
                                 <motion.span
                                     initial={{ opacity: 0, x: -4 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.2, ease: "easeOut" }}
+                                    transition={{ duration: 0.15, ease: "easeOut" }}
                                     className="relative tracking-tight font-bold text-[12.5px] whitespace-nowrap"
                                 >
                                     {label}
                                 </motion.span>
                             )}
-                        </motion.button>
+                        </button>
                     );
                 })}
             </motion.nav>

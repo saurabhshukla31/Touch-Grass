@@ -1,7 +1,14 @@
 // Minimal service worker for Touch Grass PWA.
 // Pre-caches the app shell and serves cached assets when offline.
-const CACHE = "touch-grass-v1";
-const SHELL = ["/", "/index.html", "/manifest.json"];
+const CACHE = "touch-grass-v2";
+const SHELL = [
+    "/",
+    "/index.html",
+    "/manifest.json",
+    "/favicon.svg",
+    "/favicon.png",
+    "/favicon.ico"
+];
 
 self.addEventListener("install", (e) => {
     e.waitUntil(

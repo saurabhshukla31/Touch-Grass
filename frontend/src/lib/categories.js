@@ -25,7 +25,11 @@ import {
   Beer,
   Disc,
   Gamepad2,
-  Trophy
+  Trophy,
+  Compass,
+  Heart,
+  Shield,
+  Users
 } from "lucide-react";
 
 // Real Mapbox Search Box API canonical category IDs.
@@ -326,29 +330,39 @@ export const CATEGORIES = [
 
 export const MODES = {
   explore: {
-    label: "Explore Mode",
+    label: "Explore",
+    icon: Compass,
+    color: "emerald",
     mainKey: "grass",
     gridKeys: ["hidden_gems", "viewpoint", "street_food", "landmark"]
   },
   date: {
-    label: "Date Mode",
+    label: "Date",
+    icon: Heart,
+    color: "rose",
     mainKey: "cafe",
     gridKeys: ["scenic_spot", "dessert", "fine_dining", "bookstore"]
   },
   escape: {
-    label: "Escape Mode",
+    label: "Escape",
+    icon: Trees,
+    color: "cyan",
     mainKey: "waterfront",
     gridKeys: ["nature_spot", "quiet_place", "trail", "sunset_point"]
   },
-  essentials: {
-    label: "Essentials Mode",
-    mainKey: "fuel",
-    gridKeys: ["atm", "convenience_store", "hospital", "pharmacy"]
-  },
   social: {
-    label: "Social Mode",
+    label: "Social",
+    icon: Users,
+    color: "violet",
     mainKey: "gym",
     gridKeys: ["turf", "gaming_cafe", "club", "bar"]
+  },
+  essentials: {
+    label: "Essentials",
+    icon: Shield,
+    color: "amber",
+    mainKey: "fuel",
+    gridKeys: ["atm", "convenience_store", "hospital", "pharmacy"]
   }
 };
 

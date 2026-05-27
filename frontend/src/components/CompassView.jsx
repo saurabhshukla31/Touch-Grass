@@ -226,8 +226,8 @@ export default function CompassView({ onCancel }) {
                         className="absolute inset-[-20px] rounded-full opacity-60 pointer-events-none"
                         style={{
                             background: theme === "light"
-                                ? "radial-gradient(circle, rgba(0, 163, 196, 0.04) 0%, transparent 70%)"
-                                : "radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%)",
+                                ? "radial-gradient(circle, rgba(var(--mode-accent-rgb), 0.05) 0%, transparent 70%)"
+                                : "radial-gradient(circle, rgba(var(--mode-accent-rgb), 0.12) 0%, transparent 70%)",
                         }}
                     />
                     
@@ -237,13 +237,13 @@ export default function CompassView({ onCancel }) {
                         style={{
                             inset: "6px",
                             background: theme === "light"
-                                ? "linear-gradient(135deg, #FFFFFF 0%, #FAF9F6 100%)"
+                                ? "linear-gradient(135deg, #c7c7cc 0%, #b8b8c0 100%)"
                                 : "linear-gradient(135deg, #0D1115 0%, #06080A 100%)",
                             border: theme === "light"
-                                ? "1px solid rgba(0, 0, 0, 0.05)"
+                                ? "1px solid rgba(0, 0, 0, 0.16)"
                                 : "1px solid rgba(255, 255, 255, 0.08)",
                             boxShadow: theme === "light"
-                                ? "0 12px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)"
+                                ? "0 12px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.25)"
                                 : "0 16px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
                         }}
                     />
@@ -268,18 +268,18 @@ export default function CompassView({ onCancel }) {
                             ))}
 
                             {/* Cardinal Letters (N, E, S, W) */}
-                            {/* N (cyan highlight & glow in dark mode) */}
+                            {/* N (mode highlight & glow in dark mode) */}
                             <text
                                 x="160"
                                 y="48"
                                 textAnchor="middle"
                                 dominantBaseline="central"
-                                fill={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                                fill="var(--mode-accent)"
                                 className="font-black select-none text-[15px]"
                                 style={{
                                     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                                     letterSpacing: "0.05em",
-                                    filter: theme === "light" ? "none" : "drop-shadow(0 0 4px rgba(0, 229, 255, 0.6))"
+                                    filter: theme === "light" ? "none" : "drop-shadow(0 0 5px var(--mode-accent))"
                                 }}
                             >
                                 N
@@ -450,7 +450,7 @@ export default function CompassView({ onCancel }) {
                             cy="160"
                             r="154"
                             fill="none"
-                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.08)"}
+                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.08)"}
                             strokeWidth="1.5"
                         />
                         
@@ -474,21 +474,21 @@ export default function CompassView({ onCancel }) {
                             strokeWidth="1"
                         />
                         
-                        {/* Cyan Arrowhead Pointer at the top (12 o'clock) pointing down */}
+                        {/* Mode Arrowhead Pointer at the top (12 o'clock) pointing down */}
                         <polygon
                             points="160,16 153.5,6 166.5,6"
-                            fill={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            fill="var(--mode-accent)"
                             filter={theme === "light" ? "none" : "url(#cyan-glow)"}
                         />
                         
-                        {/* Cyan axis indicators at 3, 6, 9 o'clock */}
+                        {/* Mode axis indicators at 3, 6, 9 o'clock */}
                         {/* W (9 o'clock) */}
                         <line
                             x1="6"
                             y1="160"
                             x2="15"
                             y2="160"
-                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            stroke="var(--mode-accent)"
                             strokeWidth="2"
                             strokeLinecap="round"
                             filter={theme === "light" ? "none" : "url(#cyan-glow)"}
@@ -499,7 +499,7 @@ export default function CompassView({ onCancel }) {
                             y1="160"
                             x2="314"
                             y2="160"
-                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            stroke="var(--mode-accent)"
                             strokeWidth="2"
                             strokeLinecap="round"
                             filter={theme === "light" ? "none" : "url(#cyan-glow)"}
@@ -510,7 +510,7 @@ export default function CompassView({ onCancel }) {
                             y1="305"
                             x2="160"
                             y2="314"
-                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            stroke="var(--mode-accent)"
                             strokeWidth="2"
                             strokeLinecap="round"
                             filter={theme === "light" ? "none" : "url(#cyan-glow)"}
@@ -582,7 +582,7 @@ export default function CompassView({ onCancel }) {
                         animate={{ opacity: 1, y: 0 }}
                         className={`w-full max-w-sm rounded-3xl p-5 shadow-2xl border transition-colors duration-300 ${
                             theme === "light"
-                                ? "bg-white border-black/10 shadow-black/5"
+                                ? "bg-[#dcdce2] border-black/10 shadow-black/5"
                                 : "bg-[#08080a] border-white/10"
                         }`}
                     >

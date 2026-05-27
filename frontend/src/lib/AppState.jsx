@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { getSettings, setSettings as persistSettings } from "@/lib/db";
 import { setHapticsEnabled } from "@/lib/haptics";
+import { MODES } from "@/lib/categories";
 
 const AppCtx = createContext(null);
 
@@ -27,6 +28,7 @@ const initial = {
     mapViewMode: "2d",
     navViewMode: "3d",
     appMode: "explore",
+    animatingMode: null,
     locationPermission: "unknown", // 'unknown' | 'granted' | 'denied'
     orientationPermission: "unknown",
     heading: null, 
@@ -307,6 +309,63 @@ export function AppProvider({ children }) {
         }
     }, [state.theme]);
 
+    useEffect(() => {
+        if (!state.appMode) return;
+        const root = document.documentElement;
+        
+        const modeParams = {
+            explore: {
+                accent: "#10b981",
+                rgb: "16,185,129",
+                glowTop: "rgba(16,185,129,0.14)",
+                glowBottom: "rgba(56,189,248,0.06)",
+                glowTopLight: "rgba(16,185,129,0.08)",
+                glowBottomLight: "rgba(56,189,248,0.04)"
+            },
+            date: {
+                accent: "#f43f5e",
+                rgb: "244,63,94",
+                glowTop: "rgba(244,63,94,0.14)",
+                glowBottom: "rgba(245,158,11,0.06)",
+                glowTopLight: "rgba(244,63,94,0.08)",
+                glowBottomLight: "rgba(245,158,11,0.04)"
+            },
+            escape: {
+                accent: "#06b6d4",
+                rgb: "6,182,212",
+                glowTop: "rgba(6,182,212,0.14)",
+                glowBottom: "rgba(16,185,129,0.06)",
+                glowTopLight: "rgba(6,182,212,0.08)",
+                glowBottomLight: "rgba(16,185,129,0.04)"
+            },
+            social: {
+                accent: "#a855f7",
+                rgb: "139,92,246",
+                glowTop: "rgba(139,92,246,0.14)",
+                glowBottom: "rgba(244,63,94,0.06)",
+                glowTopLight: "rgba(139,92,246,0.08)",
+                glowBottomLight: "rgba(244,63,94,0.04)"
+            },
+            essentials: {
+                accent: "#f59e0b",
+                rgb: "245,158,11",
+                glowTop: "rgba(245,158,11,0.14)",
+                glowBottom: "rgba(59,130,246,0.06)",
+                glowTopLight: "rgba(245,158,11,0.08)",
+                glowBottomLight: "rgba(59,130,246,0.04)"
+            }
+        };
+
+        const config = modeParams[state.appMode] || modeParams.explore;
+
+        root.style.setProperty("--mode-accent", config.accent);
+        root.style.setProperty("--mode-accent-rgb", config.rgb);
+        root.style.setProperty("--mode-glow-top", config.glowTop);
+        root.style.setProperty("--mode-glow-bottom", config.glowBottom);
+        root.style.setProperty("--mode-glow-top-light", config.glowTopLight);
+        root.style.setProperty("--mode-glow-bottom-light", config.glowBottomLight);
+    }, [state.appMode]);
+
     const setTheme = useCallback(async (theme) => {
         setState((s) => ({ ...s, theme }));
         try { await persistSettings({ theme }); } catch { /* ignore */ }
@@ -337,6 +396,21 @@ export function AppProvider({ children }) {
         try { await persistSettings({ appMode }); } catch { /* ignore */ }
     }, []);
 
+    const changeAppMode = useCallback((newMode) => {
+        const modeObj = MODES[newMode];
+        if (!modeObj) return;
+        setState((s) => ({ ...s, animatingMode: modeObj }));
+        setTimeout(() => {
+            setState((s) => ({
+                ...s,
+                appMode: newMode,
+                currentTab: "home",
+                animatingMode: null,
+            }));
+            persistSettings({ appMode: newMode }).catch(() => {});
+        }, 1100);
+    }, []);
+
     const resetSession = useCallback(() => {
         setState((s) => ({
             ...s,
@@ -364,12 +438,13 @@ export function AppProvider({ children }) {
             setMapViewMode,
             setNavViewMode,
             setAppMode,
+            changeAppMode,
             resetSession,
             togglePill,
             subscribeHeading,
             setTheme,
         }),
-        [state, update, requestLocation, startWatchingLocation, stopWatchingLocation, requestOrientation, setUnits, setTravelMode, setMapViewMode, setNavViewMode, setAppMode, resetSession, togglePill, subscribeHeading, setTheme]
+        [state, update, requestLocation, startWatchingLocation, stopWatchingLocation, requestOrientation, setUnits, setTravelMode, setMapViewMode, setNavViewMode, setAppMode, changeAppMode, resetSession, togglePill, subscribeHeading, setTheme]
     );
 
     return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
