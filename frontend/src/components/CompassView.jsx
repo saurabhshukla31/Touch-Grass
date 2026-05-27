@@ -214,15 +214,17 @@ export default function CompassView({ onCancel }) {
             <div className="tg-ambient" />
 
             {/* Destination pill, anchored top */}
-            <div className="absolute top-[env(safe-area-inset-top)] mt-8 left-0 right-0 z-20 flex w-full justify-center">
-                <DestinationPill
-                    category={selectedCategory}
-                    destination={destination}
-                    distance={distance}
-                    units={units}
-                    anchor="top"
-                />
-            </div>
+            {destination && (
+                <div className="absolute top-[env(safe-area-inset-top)] mt-8 left-0 right-0 z-20 flex w-full justify-center">
+                    <DestinationPill
+                        category={selectedCategory}
+                        destination={destination}
+                        distance={distance}
+                        units={units}
+                        anchor="top"
+                    />
+                </div>
+            )}
 
             {/* Main Compass Area (pushed down slightly) */}
             <div className="flex-1 flex flex-col items-center justify-center pt-16 w-full">
@@ -539,7 +541,7 @@ export default function CompassView({ onCancel }) {
                 </div>
 
                 {/* Stats */}
-                <div className="relative z-10 mt-8 mb-4 flex flex-col items-center gap-1.5 shrink-0">
+                <div className={`relative z-10 mt-8 mb-4 flex flex-col items-center gap-1.5 shrink-0 ${!destination ? "invisible pointer-events-none" : ""}`}>
                     <div
                         data-testid="compass-distance"
                         className="text-[56px] font-black leading-none tracking-tighter text-white"
@@ -569,7 +571,7 @@ export default function CompassView({ onCancel }) {
                     haptics.tap();
                     onCancel?.();
                 }}
-                className="relative z-10 mt-auto mb-5 flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[12px] font-semibold tracking-wide text-white/55 tg-glass active:scale-95"
+                className={`relative z-10 mt-auto mb-5 flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-[12px] font-semibold tracking-wide text-white/55 tg-glass active:scale-95 ${!destination ? "invisible pointer-events-none" : ""}`}
             >
                 <X size={14} strokeWidth={1.8} />
                 End session
@@ -647,6 +649,23 @@ export default function CompassView({ onCancel }) {
                             </button>
                         </div>
                     </motion.div>
+                </div>
+            )}
+            {!destination && (
+                <div
+                    className="absolute inset-x-4 z-30 flex justify-center"
+                    style={{
+                        bottom: "calc(env(safe-area-inset-bottom, 0px) + 98px)",
+                    }}
+                >
+                    <div className="w-full max-w-sm p-5 rounded-3xl tg-glass text-center">
+                        <h3 className="text-base font-black tracking-tight leading-snug text-white">
+                            Go to the <span className="text-emerald-500 font-black">Home Tab</span>
+                        </h3>
+                        <p className="mt-1.5 text-xs font-semibold leading-relaxed text-white/55">
+                            Choose a category to get started and begin tracking.
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

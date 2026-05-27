@@ -1041,15 +1041,16 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         setTrackingMode(true);
 
         const targetZoom = travelMode === "driving" ? 16 : 18.5;
+        const paddingBottom = destination ? 250 : 100;
         map.easeTo({
             center: [userLocation.lng, userLocation.lat],
             zoom: targetZoom,
             pitch: navViewMode === "3d" ? 60 : 0,
             bearing: latestHeadingRef.current,
-            padding: { top: 0, bottom: 250, left: 0, right: 0 },
+            padding: { top: 0, bottom: paddingBottom, left: 0, right: 0 },
             duration: 500,
         });
-    }, [userLocation, mapReady, travelMode, navViewMode]);
+    }, [userLocation, mapReady, travelMode, navViewMode, destination]);
 
     if (!tokenAvailable) {
         return (
@@ -1071,7 +1072,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 }}
             />
 
-            {!navStarted && (
+            {!navStarted && destination && (
                 <div className="absolute left-0 right-0 top-0 z-20 flex justify-center pt-4">
                     <DestinationPill
                         category={selectedCategory}
@@ -1145,151 +1146,195 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     )}
             </AnimatePresence>
 
-            {/* Bottom info card */}
-            <div
-                className="absolute inset-x-4 z-30"
-                style={{
-                    bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
-                }}
-            >
-                <motion.div
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: "spring", stiffness: 280, damping: 28 }}
-                    className="rounded-[22px] p-4 tg-glass-strong"
-                    data-testid="map-info-card"
-                >
-                    <div className="flex items-baseline justify-between">
-                        <div>
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                {selectedCategory?.label || ""}
-                            </div>
-                            <div
-                                data-testid="map-route-distance"
-                                className="mt-0.5 text-xl font-black tracking-tight text-white"
-                            >
-                                {routeLoading
-                                    ? "Calculating…"
-                                    : routeError
-                                        ? "Route unavailable"
-                                        : formatDistance(distance, units)}
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                ETA
-                            </div>
-                            <div
-                                data-testid="map-route-eta"
-                                className="mt-0.5 text-xl font-black tracking-tight text-white"
-                            >
-                                {formatDuration(duration)}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ── Live tracking stats (visible during navigation) ── */}
-                    {navStarted && tracker && (
-                        <div className="mt-2 flex items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2">
-                            <div className="flex-1">
-                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-blue-400/70">
-                                    Travelled
-                                </div>
-                                <div className="text-sm font-black tracking-tight text-white">
-                                    {(tracker.actualDistanceKm).toFixed(2)} km
-                                </div>
-                            </div>
-                            <div className="h-6 w-px bg-white/10" />
-                            <div className="flex-1">
-                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                    Planned Route
-                                </div>
-                                <div className="text-sm font-bold tracking-tight text-white/60">
-                                    {route ? formatDistance(route.distance, units) : "—"}
-                                </div>
-                            </div>
-                            <div className="h-6 w-px bg-white/10" />
-                            <div>
-                                <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                    Time
-                                </div>
-                                <div className="text-sm font-bold tracking-tight text-white/60">
-                                    {formatDuration(tracker.durationSec)}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {!navStarted && (
-                        <div className="mt-3 flex gap-1.5 rounded-xl bg-white/[0.04] p-1">
-                            {PROFILES.map(({ key, label, Icon }) => {
-                                const active = travelMode === key;
-                                return (
-                                    <button
-                                        key={key}
-                                        data-testid={`travel-mode-${key}`}
-                                        onClick={() => {
-                                            haptics.tap();
-                                            setTravelMode(key);
-                                        }}
-                                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${active
-                                            ? "bg-white/10 text-white ring-1 ring-white/10"
-                                            : "text-white/45"
-                                            }`}
-                                    >
-                                        <Icon size={12} strokeWidth={1.8} />
-                                        {label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    <div className="mt-3 flex gap-2.5">
-                        {!navStarted ? (
-                            <button
-                                data-testid="start-navigation"
-                                disabled={!route || routeLoading}
-                                onClick={() => {
-                                    haptics.success();
-                                    update({ navStarted: true });
-                                }}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-500/90 px-4 py-2.5 text-[13px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
-                            >
-                                <Play size={12} strokeWidth={2.4} />
-                                Start
-                            </button>
-                        ) : (
-                            <button
-                                data-testid="end-navigation"
-                                onClick={handleEnd}
-                                className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 ring-1 ring-rose-500/20 active:scale-[0.98] transition-colors hover:bg-rose-500/15"
-                            >
-                                <Square size={12} strokeWidth={2} fill="currentColor" />
-                                End
-                            </button>
-                        )}
-                        {navStarted && (
-                            <button
-                                data-testid="map-recenter"
-                                onClick={handleRecenter}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 active:scale-95"
-                                aria-label="Recenter"
-                            >
-                                <LocateFixed size={14} strokeWidth={2} />
-                            </button>
-                        )}
+            {/* Bottom info card / Instruction / Recenter */}
+            {!destination ? (
+                <>
+                    {/* Floating Recenter Button */}
+                    <div
+                        className="absolute z-30"
+                        style={{
+                            right: "16px",
+                            bottom: "calc(env(safe-area-inset-bottom, 0px) + 224px)",
+                        }}
+                    >
                         <button
-                            data-testid="map-cancel"
-                            onClick={handleCancel}
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
-                            aria-label="Cancel"
+                            data-testid="map-recenter"
+                            onClick={handleRecenter}
+                            className={`flex h-12 w-12 items-center justify-center rounded-full shadow-2xl backdrop-blur-xl active:scale-95 transition-transform border ${
+                                theme === "light"
+                                    ? "bg-white/90 text-black border-black/10 shadow-black/5"
+                                    : "bg-[#111218]/90 text-white border-white/10"
+                            }`}
+                            aria-label="Recenter"
                         >
-                            <X size={12} strokeWidth={1.8} />
+                            <LocateFixed size={18} strokeWidth={2} />
                         </button>
                     </div>
-                </motion.div>
-            </div>
+
+                    {/* Bottom Guide Text */}
+                    <div
+                        className="absolute inset-x-4 z-30 flex justify-center"
+                        style={{
+                            bottom: "calc(env(safe-area-inset-bottom, 0px) + 98px)",
+                        }}
+                    >
+                        <div className="w-full max-w-sm p-5 rounded-3xl tg-glass text-center">
+                            <h3 className="text-base font-black tracking-tight leading-snug text-white">
+                                Go to the <span className="text-emerald-500 font-black">Home Tab</span>
+                            </h3>
+                            <p className="mt-1.5 text-xs font-semibold leading-relaxed text-white/55">
+                                Choose a category to get started and begin tracking.
+                            </p>
+                        </div>
+                    </div>
+                </>
+            ) : (
+                /* Bottom info card */
+                <div
+                    className="absolute inset-x-4 z-30"
+                    style={{
+                        bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+                    }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ type: "spring", stiffness: 280, damping: 28 }}
+                        className="rounded-[22px] p-4 tg-glass-strong"
+                        data-testid="map-info-card"
+                    >
+                        <div className="flex items-baseline justify-between">
+                            <div>
+                                <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                    {selectedCategory?.label || ""}
+                                </div>
+                                <div
+                                    data-testid="map-route-distance"
+                                    className="mt-0.5 text-xl font-black tracking-tight text-white"
+                                >
+                                    {routeLoading
+                                        ? "Calculating…"
+                                        : routeError
+                                            ? "Route unavailable"
+                                            : formatDistance(distance, units)}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                    ETA
+                                </div>
+                                <div
+                                    data-testid="map-route-eta"
+                                    className="mt-0.5 text-xl font-black tracking-tight text-white"
+                                >
+                                    {formatDuration(duration)}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── Live tracking stats (visible during navigation) ── */}
+                        {navStarted && tracker && (
+                            <div className="mt-2 flex items-center gap-3 rounded-xl bg-white/[0.04] px-3 py-2">
+                                <div className="flex-1">
+                                    <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-blue-400/70">
+                                        Travelled
+                                    </div>
+                                    <div className="text-sm font-black tracking-tight text-white">
+                                        {(tracker.actualDistanceKm).toFixed(2)} km
+                                    </div>
+                                </div>
+                                <div className="h-6 w-px bg-white/10" />
+                                <div className="flex-1">
+                                    <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                        Planned Route
+                                    </div>
+                                    <div className="text-sm font-bold tracking-tight text-white/60">
+                                        {route ? formatDistance(route.distance, units) : "—"}
+                                    </div>
+                                </div>
+                                <div className="h-6 w-px bg-white/10" />
+                                <div>
+                                    <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">
+                                        Time
+                                    </div>
+                                    <div className="text-sm font-bold tracking-tight text-white/60">
+                                        {formatDuration(tracker.durationSec)}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {!navStarted && (
+                            <div className="mt-3 flex gap-1.5 rounded-xl bg-white/[0.04] p-1">
+                                {PROFILES.map(({ key, label, Icon }) => {
+                                    const active = travelMode === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            data-testid={`travel-mode-${key}`}
+                                            onClick={() => {
+                                                haptics.tap();
+                                                setTravelMode(key);
+                                            }}
+                                            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${active
+                                                ? "bg-white/10 text-white ring-1 ring-white/10"
+                                                : "text-white/45"
+                                                }`}
+                                        >
+                                            <Icon size={12} strokeWidth={1.8} />
+                                            {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div className="mt-3 flex gap-2.5">
+                            {!navStarted ? (
+                                <button
+                                    data-testid="start-navigation"
+                                    disabled={!route || routeLoading}
+                                    onClick={() => {
+                                        haptics.success();
+                                        update({ navStarted: true });
+                                    }}
+                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-emerald-500/90 px-4 py-2.5 text-[13px] font-bold text-black active:scale-[0.98] disabled:opacity-40"
+                                >
+                                    <Play size={12} strokeWidth={2.4} />
+                                    Start
+                                </button>
+                            ) : (
+                                <button
+                                    data-testid="end-navigation"
+                                    onClick={handleEnd}
+                                    className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-rose-500/10 px-4 py-2.5 text-[13px] font-bold text-rose-400 ring-1 ring-rose-500/20 active:scale-[0.98] transition-colors hover:bg-rose-500/15"
+                                >
+                                    <Square size={12} strokeWidth={2} fill="currentColor" />
+                                    End
+                                </button>
+                            )}
+                            {navStarted && (
+                                <button
+                                    data-testid="map-recenter"
+                                    onClick={handleRecenter}
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/20 active:scale-95"
+                                    aria-label="Recenter"
+                                >
+                                    <LocateFixed size={14} strokeWidth={2} />
+                                </button>
+                            )}
+                            <button
+                                data-testid="map-cancel"
+                                onClick={handleCancel}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/5 text-white/55 ring-1 ring-white/10 active:scale-95"
+                                aria-label="Cancel"
+                            >
+                                <X size={12} strokeWidth={1.8} />
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

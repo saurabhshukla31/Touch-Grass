@@ -103,34 +103,6 @@ function ResolvingOverlay({ category }) {
   );
 }
 
-function NoActiveSessionView({ tab, onStart }) {
-  const Icon = tab === "compass" ? Compass : MapIcon;
-  return (
-    <div className="relative flex h-[100dvh] w-full flex-col px-5 pt-safe justify-center items-center text-center tg-no-select">
-      <div className="tg-ambient" />
-      <div className="relative z-10 flex flex-col items-center max-w-sm rounded-[32px] p-8 bg-white/[0.03] shadow-2xl ring-1 ring-white/10 backdrop-blur-xl gap-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-          <Icon size={32} strokeWidth={1.8} />
-        </div>
-        <div>
-          <h2 className="text-xl font-black text-white tracking-tight">No Active Session</h2>
-          <p className="mt-2 text-xs leading-relaxed text-white/45">
-            You need to start a journey to use the {tab === "compass" ? "Compass" : "Map"}. Go to the Home tab and select a category.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            haptics.tap();
-            onStart();
-          }}
-          className="w-full flex h-12 items-center justify-center rounded-2xl bg-emerald-500 text-black font-black tracking-wide shadow-[0_8px_30px_-10px_rgba(16,185,129,0.5)] ring-1 ring-emerald-400 active:scale-95 transition-transform"
-        >
-          Go to Home
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function SplashScreen() {
   const { theme } = useApp();
@@ -398,10 +370,12 @@ function Shell() {
   const [resolveError, setResolveError] = useState(null);
   const [showVerification, setShowVerification] = useState(false);
 
-  // Auto-watch geolocation once we're active.
+  // Auto-watch geolocation once we're active or on map/compass screens.
   useEffect(() => {
-    if (mode === "active") startWatchingLocation();
-  }, [mode, startWatchingLocation]);
+    if (mode === "active" || currentTab === "map" || currentTab === "compass") {
+      startWatchingLocation();
+    }
+  }, [mode, currentTab, startWatchingLocation]);
 
   const handleSelectCategory = async (cat) => {
     haptics.select();
@@ -592,14 +566,7 @@ function Shell() {
             style={{ willChange: "opacity" }}
             className="absolute inset-0"
           >
-            {sessionActive ? (
-              <CompassView onCancel={handleEndSession} />
-            ) : (
-              <NoActiveSessionView
-                tab="compass"
-                onStart={() => update({ currentTab: "home" })}
-              />
-            )}
+            <CompassView onCancel={handleEndSession} />
           </motion.div>
         )}
 
@@ -613,18 +580,11 @@ function Shell() {
             style={{ willChange: "opacity" }}
             className="absolute inset-0"
           >
-            {sessionActive ? (
-              <MapView
-                onEnd={handleEndSession}
-                tracker={tracker}
-                plannedDistanceRef={plannedDistanceRef}
-              />
-            ) : (
-              <NoActiveSessionView
-                tab="map"
-                onStart={() => update({ currentTab: "home" })}
-              />
-            )}
+            <MapView
+              onEnd={handleEndSession}
+              tracker={tracker}
+              plannedDistanceRef={plannedDistanceRef}
+            />
           </motion.div>
         )}
 
