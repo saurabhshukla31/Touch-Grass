@@ -73,6 +73,35 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
     );
 }
 
+function StreakCard({ value }) {
+    return (
+        <div 
+            className="relative flex flex-col items-center justify-center text-center gap-1.5 rounded-[24px] p-4.5 overflow-hidden tg-glass"
+            style={{
+                border: "1px solid rgba(245, 158, 11, 0.25)",
+                background: "linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, var(--card-bg) 100%)",
+                boxShadow: "0 8px 32px rgba(245, 158, 11, 0.03)"
+            }}
+        >
+            <div className="text-amber-500 relative flex items-center justify-center mb-0.5">
+                <Flame size={18} strokeWidth={2.5} className="relative z-10 filter drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]" />
+                <motion.div
+                    className="absolute inset-0 rounded-full bg-amber-500/20"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 0, 0.6] }}
+                    transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
+                    style={{ width: 18, height: 18 }}
+                />
+            </div>
+            <div className="text-[19px] font-black tracking-tight text-white leading-none">
+                {value}
+            </div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/35">
+                Streak
+            </div>
+        </div>
+    );
+}
+
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
 function WeeklyChart({ sessions, units, theme }) {
     const bars = useMemo(() => {
@@ -101,35 +130,34 @@ function WeeklyChart({ sessions, units, theme }) {
     const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
 
     return (
-        <div className="rounded-3xl p-5 tg-glass">
-            <div className="flex items-end justify-between gap-1.5" style={{ height: 100 }}>
+        <div className="rounded-[24px] p-5 tg-glass">
+            <div className="flex items-end justify-between gap-3 px-1" style={{ height: 110 }}>
                 {bars.map((b, i) => {
-                    const pct = Math.max(4, (b.distance / maxDist) * 100);
+                    const pct = Math.max(8, (b.distance / maxDist) * 100);
                     const hasData = b.distance > 0;
                     return (
-                        <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+                        <div key={i} className="flex flex-1 h-full flex-col justify-end items-center">
                             <div
-                                className="w-full rounded-lg transition-[height,background,box-shadow] duration-500"
+                                className="w-full rounded-full transition-all duration-500"
                                 style={{
-                                    height: `${pct}%`,
+                                    height: hasData ? `${pct}%` : "6px",
                                     background: hasData
-                                        ? "linear-gradient(to top, rgba(16,185,129,0.5), rgba(16,185,129,0.85))"
-                                        : (theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)"),
+                                        ? "linear-gradient(to top, rgba(16, 185, 129, 0.4) 0%, rgba(16, 185, 129, 0.9) 100%)"
+                                        : (theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"),
                                     boxShadow: hasData
-                                        ? "0 0 12px rgba(16,185,129,0.3)"
+                                        ? "0 0 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
                                         : "none",
-                                    minHeight: 4,
                                 }}
                             />
                         </div>
                     );
                 })}
             </div>
-            <div className="mt-2 flex justify-between gap-1.5">
+            <div className="mt-3 flex justify-between gap-3 px-1">
                 {bars.map((b, i) => (
                     <div
                         key={i}
-                        className="flex-1 text-center text-[9px] font-semibold text-white/30"
+                        className={`flex-1 text-center text-[10px] font-bold ${theme === "light" ? "text-black/30" : "text-white/30"}`}
                     >
                         {dayLabels[b.date.getDay()]}
                     </div>
@@ -140,7 +168,7 @@ function WeeklyChart({ sessions, units, theme }) {
 }
 
 // ── Category donut chart (pure SVG) ───────────────────────────
-function CategoryDonut({ sessions }) {
+function CategoryDonut({ sessions, theme }) {
     const categories = useMemo(() => {
         const map = {};
         sessions.forEach((s) => {
@@ -160,47 +188,68 @@ function CategoryDonut({ sessions }) {
     ];
 
     let offset = 0;
-    const radius = 36;
+    const radius = 35;
     const circumference = 2 * Math.PI * radius;
 
     return (
-        <div className="rounded-3xl p-5 tg-glass">
-            <div className="flex items-center gap-5">
-                <svg width="90" height="90" viewBox="0 0 90 90">
-                    {categories.map((cat, i) => {
-                        const pct = cat.count / total;
-                        const dash = pct * circumference;
-                        const gap = circumference - dash;
-                        const o = offset;
-                        offset += pct * circumference;
-                        return (
-                            <circle
-                                key={cat.key}
-                                cx="45"
-                                cy="45"
-                                r={radius}
-                                fill="none"
-                                stroke={colors[i % colors.length]}
-                                strokeWidth="10"
-                                strokeDasharray={`${dash} ${gap}`}
-                                strokeDashoffset={-o}
-                                strokeLinecap="round"
-                                style={{ transition: "stroke-dasharray 0.5s ease" }}
-                            />
-                        );
-                    })}
-                </svg>
-                <div className="flex flex-col gap-1.5">
+        <div className="rounded-[24px] p-5 tg-glass">
+            <div className="flex items-center gap-6">
+                <div className="relative flex h-[90px] w-[90px] shrink-0 items-center justify-center">
+                    <svg width="90" height="90" viewBox="0 0 90 90" className="-rotate-90">
+                        {/* Background track circle */}
+                        <circle
+                            cx="45"
+                            cy="45"
+                            r={radius}
+                            fill="none"
+                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"}
+                            strokeWidth="8"
+                        />
+                        {categories.map((cat, i) => {
+                            const pct = cat.count / total;
+                            const dash = pct * circumference;
+                            const gap = circumference - dash;
+                            const o = offset;
+                            offset += pct * circumference;
+                            return (
+                                <circle
+                                    key={cat.key}
+                                    cx="45"
+                                    cy="45"
+                                    r={radius}
+                                    fill="none"
+                                    stroke={colors[i % colors.length]}
+                                    strokeWidth="8"
+                                    strokeDasharray={`${dash} ${gap}`}
+                                    strokeDashoffset={-o}
+                                    strokeLinecap="round"
+                                    style={{ transition: "stroke-dasharray 0.5s ease" }}
+                                />
+                            );
+                        })}
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center text-center">
+                        <span className="text-[20px] font-black leading-none text-white">
+                            {total}
+                        </span>
+                        <span className="mt-1 text-[8px] font-bold uppercase tracking-wider text-white/30">
+                            TOTAL
+                        </span>
+                    </div>
+                </div>
+                <div className="flex-1 flex flex-col gap-2.5">
                     {categories.slice(0, 4).map((cat, i) => (
-                        <div key={cat.key} className="flex items-center gap-2">
-                            <div
-                                className="h-2 w-2 rounded-full"
-                                style={{ background: colors[i % colors.length] }}
-                            />
-                            <span className="text-[11px] font-medium text-white/70">
-                                {cat.label}
-                            </span>
-                            <span className="text-[10px] text-white/35">
+                        <div key={cat.key} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div
+                                    className="h-2 w-2 rounded-full shrink-0"
+                                    style={{ background: colors[i % colors.length] }}
+                                />
+                                <span className="text-xs font-semibold text-white/70">
+                                    {cat.label}
+                                </span>
+                            </div>
+                            <span className="text-xs font-bold text-white/95">
                                 {cat.count}
                             </span>
                         </div>
@@ -374,7 +423,7 @@ export default function InsightsView() {
             <div className="relative z-10">
                 {/* ── Hero stats grid ────────────────────────── */}
                 <Section title="Overview">
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <StatCard
                             label="Distance"
                             value={
@@ -391,14 +440,7 @@ export default function InsightsView() {
                             icon={MapPin}
                             color="blue"
                         />
-                        <StatCard
-                            label="Streak"
-                            value={`${stats.streaks.current}d`}
-                            icon={Flame}
-                            color="amber"
-                        />
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
+                        <StreakCard value={`${stats.streaks.current}d`} />
                         <StatCard
                             label="Time"
                             value={formatDuration(stats.totalDurationSec)}
@@ -427,8 +469,8 @@ export default function InsightsView() {
 
                 {/* ── Activity heatmap (30 days) ────────────── */}
                 <Section title="Activity · 30 days">
-                    <div className="rounded-3xl p-5 tg-glass">
-                        <div className="grid grid-cols-10 gap-1.5">
+                    <div className="rounded-[24px] p-5 tg-glass">
+                        <div className="grid grid-cols-10 gap-2">
                             {heat.map((d, i) => {
                                 const intensity =
                                     (d.totalMin || d.count) / maxHeat;
@@ -436,14 +478,14 @@ export default function InsightsView() {
                                 return (
                                     <button
                                         key={i}
-                                        className="aspect-square rounded-md transition-transform active:scale-90"
+                                        className="aspect-square rounded-[8px] transition-transform active:scale-95 duration-200"
                                         style={{
                                             background: active
-                                                ? `rgba(16,185,129,${0.18 + intensity * 0.62})`
-                                                : (theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.04)"),
+                                                ? `rgba(16, 185, 129, ${0.3 + intensity * 0.65})`
+                                                : (theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)"),
                                             boxShadow: active
-                                                ? `inset 0 0 0 1px rgba(16,185,129,0.22), 0 0 ${Math.round(intensity * 8)}px rgba(16,185,129,${intensity * 0.4})`
-                                                : (theme === "light" ? "inset 0 0 0 1px rgba(0,0,0,0.06)" : "inset 0 0 0 1px rgba(255,255,255,0.04)"),
+                                                ? `inset 0 0 0 1px rgba(16, 185, 129, 0.25), 0 0 ${4 + intensity * 8}px rgba(16, 185, 129, ${0.15 + intensity * 0.45})`
+                                                : "none",
                                         }}
                                         onClick={() =>
                                             setHeatTip(
@@ -500,7 +542,7 @@ export default function InsightsView() {
                 {/* ── Category breakdown ─────────────────────── */}
                 {sessions.length > 0 && (
                     <Section title="Categories">
-                        <CategoryDonut sessions={sessions} />
+                        <CategoryDonut sessions={sessions} theme={theme} />
                     </Section>
                 )}
 
@@ -720,27 +762,27 @@ export default function InsightsView() {
                                                                     ? (mode === "walk"
                                                                         ? "rgba(4, 120, 87, 0.15)"
                                                                         : mode === "bike"
-                                                                          ? "rgba(29, 78, 216, 0.15)"
-                                                                          : "rgba(109, 40, 217, 0.15)")
+                                                                            ? "rgba(29, 78, 216, 0.15)"
+                                                                            : "rgba(109, 40, 217, 0.15)")
                                                                     : (mode === "walk"
                                                                         ? "rgba(16,185,129,0.12)"
                                                                         : mode ===
                                                                             "bike"
-                                                                          ? "rgba(96,165,250,0.12)"
-                                                                          : "rgba(167,139,250,0.12)"),
+                                                                            ? "rgba(96,165,250,0.12)"
+                                                                            : "rgba(167,139,250,0.12)"),
                                                             color:
                                                                 theme === "light"
                                                                     ? (mode === "walk"
                                                                         ? "#047857"
                                                                         : mode === "bike"
-                                                                          ? "#1d4ed8"
-                                                                          : "#6d28d9")
+                                                                            ? "#1d4ed8"
+                                                                            : "#6d28d9")
                                                                     : (mode === "walk"
                                                                         ? "#6EE7B7"
                                                                         : mode ===
                                                                             "bike"
-                                                                          ? "#93C5FD"
-                                                                          : "#C4B5FD"),
+                                                                            ? "#93C5FD"
+                                                                            : "#C4B5FD"),
                                                         }}
                                                     >
                                                         <ModeIcon

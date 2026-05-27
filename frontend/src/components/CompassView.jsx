@@ -139,10 +139,64 @@ export default function CompassView({ onCancel }) {
         return unsubscribe;
     }, [subscribeHeading, ringRotationMV, needleRotationMV]);
 
-    const ticks = useMemo(() => {
-        const arr = [];
-        for (let i = 0; i < 36; i++) arr.push(i);
-        return arr;
+    const svgTicks = useMemo(() => {
+        const lines = [];
+        const rOut = 146;
+        for (let deg = 0; deg < 360; deg += 2) {
+            let rIn = 142; // minor tick length = 4px
+            let thickness = 1;
+            let opacity = theme === "light" ? 0.15 : 0.2;
+            
+            if (deg % 90 === 0) {
+                rIn = 130; // major tick length = 16px
+                thickness = 2.2;
+                opacity = theme === "light" ? 0.8 : 0.9;
+            } else if (deg % 30 === 0) {
+                rIn = 134; // medium-major tick length = 12px
+                thickness = 1.6;
+                opacity = theme === "light" ? 0.65 : 0.75;
+            } else if (deg % 10 === 0) {
+                rIn = 138; // medium tick length = 8px
+                thickness = 1.2;
+                opacity = theme === "light" ? 0.5 : 0.6;
+            }
+            
+            const rad = (deg * Math.PI) / 180;
+            const sin = Math.sin(rad);
+            const cos = Math.cos(rad);
+            
+            const x1 = 160 + rIn * sin;
+            const y1 = 160 - rIn * cos;
+            const x2 = 160 + rOut * sin;
+            const y2 = 160 - rOut * cos;
+            
+            lines.push({
+                deg,
+                x1,
+                y1,
+                x2,
+                y2,
+                thickness,
+                opacity,
+            });
+        }
+        return lines;
+    }, [theme]);
+
+    const tripleDots = useMemo(() => {
+        const dots = [];
+        [45, 135, 225, 315].forEach((deg) => {
+            const rad = (deg * Math.PI) / 180;
+            const sin = Math.sin(rad);
+            const cos = Math.cos(rad);
+            [90, 96, 102].forEach((r) => {
+                const cx = 160 + r * sin;
+                const cy = 160 - r * cos;
+                const size = r === 96 ? 1.5 : 0.8;
+                dots.push({ cx, cy, r: size, key: `${deg}-${r}` });
+            });
+        });
+        return dots;
     }, []);
 
     return (
@@ -167,95 +221,338 @@ export default function CompassView({ onCancel }) {
             <div className="flex-1 flex flex-col items-center justify-center pt-16 w-full">
                 {/* Compass rose */}
                 <div className="relative z-10 flex h-[320px] w-[320px] items-center justify-center shrink-0">
-                    {/* outer faint ring */}
+                    {/* outer faint ring / ambient glow */}
                     <div
-                        className="absolute inset-0 rounded-full"
+                        className="absolute inset-[-20px] rounded-full opacity-60 pointer-events-none"
                         style={{
                             background: theme === "light"
-                                ? "radial-gradient(closest-side, rgba(0,0,0,0.02), transparent 75%)"
-                                : "radial-gradient(closest-side, rgba(16,185,129,0.05), transparent 70%)",
+                                ? "radial-gradient(circle, rgba(0, 163, 196, 0.04) 0%, transparent 70%)"
+                                : "radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%)",
                         }}
                     />
-                    {/* Glassmorphic dial plate backing */}
-                    <div className="absolute inset-2 rounded-full tg-glass shadow-lg" />
-                    <div className="absolute inset-2 rounded-full border border-white/[0.06] tg-compass-ring-outer" />
-                <div className="absolute inset-8 rounded-full border border-white/[0.04] tg-compass-ring-inner" />
-
-                {/* Tick marks (rotated with heading) */}
-                <motion.div
-                    className="absolute inset-0"
-                    style={{ rotate: ringRotationSpring }}
-                >
-                    {ticks.map((i) => (
-                        <div
-                            key={i}
-                            className={`tg-tick ${i % 9 === 0 ? "tg-tick--major" : ""}`}
-                            style={{ transform: `translateX(-50%) rotate(${i * 10}deg)` }}
-                        />
-                    ))}
-                    {/* Cardinal labels */}
-                    {[
-                        { l: "N", a: 0 },
-                        { l: "E", a: 90 },
-                        { l: "S", a: 180 },
-                        { l: "W", a: 270 },
-                    ].map(({ l, a }) => (
-                        <div
-                            key={l}
-                            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[13px] font-black uppercase tracking-[0.3em]"
-                            style={{
-                                transform: `translate(-50%, -50%) rotate(${a}deg) translateY(-138px) rotate(${-a}deg)`,
-                                color:
-                                    l === "N"
-                                        ? "rgba(16,185,129,1.0)"
-                                        : (theme === "light" ? "rgba(28,28,30,0.75)" : "rgba(255,255,255,0.75)"),
-                                textShadow:
-                                    l === "N"
-                                        ? (theme === "light" ? "0 0 8px rgba(16,185,129,0.3)" : "0 0 8px rgba(16,185,129,0.5)")
-                                        : (theme === "light" ? "0 0 6px rgba(0,0,0,0.05)" : "0 0 6px rgba(255,255,255,0.2)"),
-                            }}
-                        >
-                            {l}
-                        </div>
-                    ))}
-                </motion.div>
-
-                {/* Needle */}
-                <motion.div
-                    className="absolute"
-                    style={{ transformOrigin: "50% 50%", rotate: needleRotationSpring }}
-                >
-                    <CompassNeedle
-                        size={260}
-                        accent={selectedCategory?.accent || "#10B981"}
-                        isAligned={isAligned}
-                        theme={theme}
+                    
+                    {/* Beautifully styled dial plate backing */}
+                    <div
+                        className="absolute rounded-full transition-all duration-300"
+                        style={{
+                            inset: "6px",
+                            background: theme === "light"
+                                ? "linear-gradient(135deg, #FFFFFF 0%, #FAF9F6 100%)"
+                                : "linear-gradient(135deg, #0D1115 0%, #06080A 100%)",
+                            border: theme === "light"
+                                ? "1px solid rgba(0, 0, 0, 0.05)"
+                                : "1px solid rgba(255, 255, 255, 0.08)",
+                            boxShadow: theme === "light"
+                                ? "0 12px 32px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.6)"
+                                : "0 16px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+                        }}
                     />
-                </motion.div>
-            </div>
 
-            {/* Stats */}
-            <div className="relative z-10 mt-8 mb-4 flex flex-col items-center gap-1.5 shrink-0">
-                <div
-                    data-testid="compass-distance"
-                    className="text-[56px] font-black leading-none tracking-tighter text-white"
-                >
-                    {formatDistance(distance, units)}
+                    {/* Rotating Dial SVG wrapped in motion.div */}
+                    <motion.div
+                        className="absolute inset-0 pointer-events-none z-10"
+                        style={{ rotate: ringRotationSpring }}
+                    >
+                        <svg className="w-full h-full" viewBox="0 0 320 320">
+                            {/* Ticks (every 2 degrees) */}
+                            {svgTicks.map((tick) => (
+                                <line
+                                    key={tick.deg}
+                                    x1={tick.x1}
+                                    y1={tick.y1}
+                                    x2={tick.x2}
+                                    y2={tick.y2}
+                                    stroke={theme === "light" ? `rgba(0, 0, 0, ${tick.opacity})` : `rgba(255, 255, 255, ${tick.opacity})`}
+                                    strokeWidth={tick.thickness}
+                                />
+                            ))}
+
+                            {/* Cardinal Letters (N, E, S, W) */}
+                            {/* N (cyan highlight & glow in dark mode) */}
+                            <text
+                                x="160"
+                                y="48"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                                className="font-black select-none text-[15px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                    letterSpacing: "0.05em",
+                                    filter: theme === "light" ? "none" : "drop-shadow(0 0 4px rgba(0, 229, 255, 0.6))"
+                                }}
+                            >
+                                N
+                            </text>
+                            {/* E */}
+                            <text
+                                x="272"
+                                y="160"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.8)" : "rgba(255, 255, 255, 0.9)"}
+                                className="font-black select-none text-[14px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                    letterSpacing: "0.05em"
+                                }}
+                            >
+                                E
+                            </text>
+                            {/* S */}
+                            <text
+                                x="160"
+                                y="272"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.8)" : "rgba(255, 255, 255, 0.9)"}
+                                className="font-black select-none text-[14px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                    letterSpacing: "0.05em"
+                                }}
+                            >
+                                S
+                            </text>
+                            {/* W */}
+                            <text
+                                x="48"
+                                y="160"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.8)" : "rgba(255, 255, 255, 0.9)"}
+                                className="font-black select-none text-[14px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                                    letterSpacing: "0.05em"
+                                }}
+                            >
+                                W
+                            </text>
+
+                            {/* Ordinal Letters (NE, SE, SW, NW) */}
+                            <text
+                                x="239"
+                                y="81"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.45)" : "rgba(255, 255, 255, 0.45)"}
+                                className="font-bold select-none text-[10px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                }}
+                            >
+                                NE
+                            </text>
+                            <text
+                                x="239"
+                                y="239"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.45)" : "rgba(255, 255, 255, 0.45)"}
+                                className="font-bold select-none text-[10px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                }}
+                            >
+                                SE
+                            </text>
+                            <text
+                                x="81"
+                                y="239"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.45)" : "rgba(255, 255, 255, 0.45)"}
+                                className="font-bold select-none text-[10px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                }}
+                            >
+                                SW
+                            </text>
+                            <text
+                                x="81"
+                                y="81"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                                fill={theme === "light" ? "rgba(28, 28, 30, 0.45)" : "rgba(255, 255, 255, 0.45)"}
+                                className="font-bold select-none text-[10px]"
+                                style={{
+                                    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+                                }}
+                            >
+                                NW
+                            </text>
+
+                            {/* Inner Dotted Circle */}
+                            <circle
+                                cx="160"
+                                cy="160"
+                                r="96"
+                                fill="none"
+                                stroke={theme === "light" ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.2)"}
+                                strokeWidth="1.5"
+                                strokeDasharray="1.5, 4.5"
+                            />
+
+                            {/* Triple dot markers */}
+                            {tripleDots.map((dot) => (
+                                <circle
+                                    key={dot.key}
+                                    cx={dot.cx}
+                                    cy={dot.cy}
+                                    r={dot.r}
+                                    fill={theme === "light" ? "rgba(0, 0, 0, 0.3)" : "rgba(255, 255, 255, 0.3)"}
+                                />
+                            ))}
+
+                            {/* Inner Concentric Rings */}
+                            <circle
+                                cx="160"
+                                cy="160"
+                                r="64"
+                                fill="none"
+                                stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"}
+                                strokeWidth="0.75"
+                            />
+                            <circle
+                                cx="160"
+                                cy="160"
+                                r="32"
+                                fill="none"
+                                stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"}
+                                strokeWidth="0.75"
+                            />
+
+                            {/* Crosshair reticles with center gap */}
+                            <line x1="160" y1="64" x2="160" y2="144" stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"} strokeWidth="0.75" />
+                            <line x1="160" y1="176" x2="160" y2="256" stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"} strokeWidth="0.75" />
+                            <line x1="64" y1="160" x2="144" y2="160" stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"} strokeWidth="0.75" />
+                            <line x1="176" y1="160" x2="256" y2="160" stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.06)"} strokeWidth="0.75" />
+                        </svg>
+                    </motion.div>
+
+                    {/* Static Bezel & Cyan Pointers */}
+                    <svg
+                        className="absolute inset-0 w-full h-full pointer-events-none z-20"
+                        viewBox="0 0 320 320"
+                    >
+                        <defs>
+                            <filter id="cyan-glow" x="-30%" y="-30%" width="160%" height="160%">
+                                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        
+                        {/* Outer bezel ring */}
+                        <circle
+                            cx="160"
+                            cy="160"
+                            r="154"
+                            fill="none"
+                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.08)"}
+                            strokeWidth="1.5"
+                        />
+                        
+                        {/* Middle bezel ring */}
+                        <circle
+                            cx="160"
+                            cy="160"
+                            r="150"
+                            fill="none"
+                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.035)" : "rgba(255, 255, 255, 0.05)"}
+                            strokeWidth="1"
+                        />
+                        
+                        {/* Inner bezel ring */}
+                        <circle
+                            cx="160"
+                            cy="160"
+                            r="146"
+                            fill="none"
+                            stroke={theme === "light" ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.04)"}
+                            strokeWidth="1"
+                        />
+                        
+                        {/* Cyan Arrowhead Pointer at the top (12 o'clock) pointing down */}
+                        <polygon
+                            points="160,16 153.5,6 166.5,6"
+                            fill={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            filter={theme === "light" ? "none" : "url(#cyan-glow)"}
+                        />
+                        
+                        {/* Cyan axis indicators at 3, 6, 9 o'clock */}
+                        {/* W (9 o'clock) */}
+                        <line
+                            x1="6"
+                            y1="160"
+                            x2="15"
+                            y2="160"
+                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            filter={theme === "light" ? "none" : "url(#cyan-glow)"}
+                        />
+                        {/* E (3 o'clock) */}
+                        <line
+                            x1="305"
+                            y1="160"
+                            x2="314"
+                            y2="160"
+                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            filter={theme === "light" ? "none" : "url(#cyan-glow)"}
+                        />
+                        {/* S (6 o'clock) */}
+                        <line
+                            x1="160"
+                            y1="305"
+                            x2="160"
+                            y2="314"
+                            stroke={theme === "light" ? "#00A3C4" : "#00E5FF"}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            filter={theme === "light" ? "none" : "url(#cyan-glow)"}
+                        />
+                    </svg>
+
+                    {/* Needle */}
+                    <motion.div
+                        className="absolute"
+                        style={{ transformOrigin: "50% 50%", rotate: needleRotationSpring }}
+                    >
+                        <CompassNeedle
+                            size={260}
+                            accent={selectedCategory?.accent || "#10B981"}
+                            isAligned={isAligned}
+                            theme={theme}
+                        />
+                    </motion.div>
                 </div>
-                <div className="flex items-center gap-3 text-[13px] font-medium text-white/55">
-                    <span data-testid="compass-eta">
-                        {formatDuration(etaSec)}
-                    </span>
-                    <span className="h-1 w-1 rounded-full bg-white/20" />
-                    <span data-testid="compass-bearing">
-                        {bearing != null ? `${Math.round(bearing)}° ${bearingLabel}` : "—"}
-                    </span>
-                    <span className="h-1 w-1 rounded-full bg-white/20" />
-                    <span ref={headingTextRef} data-testid="compass-heading">
-                        HEADING —°
-                    </span>
+
+                {/* Stats */}
+                <div className="relative z-10 mt-8 mb-4 flex flex-col items-center gap-1.5 shrink-0">
+                    <div
+                        data-testid="compass-distance"
+                        className="text-[56px] font-black leading-none tracking-tighter text-white"
+                    >
+                        {formatDistance(distance, units)}
+                    </div>
+                    <div className="flex items-center gap-3 text-[13px] font-medium text-white/55">
+                        <span data-testid="compass-eta">
+                            {formatDuration(etaSec)}
+                        </span>
+                        <span className="h-1 w-1 rounded-full bg-white/20" />
+                        <span data-testid="compass-bearing">
+                            {bearing != null ? `${Math.round(bearing)}° ${bearingLabel}` : "—"}
+                        </span>
+                        <span className="h-1 w-1 rounded-full bg-white/20" />
+                        <span ref={headingTextRef} data-testid="compass-heading">
+                            HEADING —°
+                        </span>
+                    </div>
                 </div>
-            </div>
             </div>
 
             {/* Cancel */}
@@ -272,26 +569,40 @@ export default function CompassView({ onCancel }) {
             </button>
 
             {showOrientPrompt && orientationPermission === "unknown" && (
-                <div 
-                    className="fixed inset-0 z-40 flex items-end justify-center backdrop-blur-sm px-5 pb-32"
+                <div
+                    className="fixed inset-0 z-40 flex items-end justify-center px-5 pb-32"
                     style={{
-                        background: theme === "light" ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.5)"
+                        background: theme === "light" ? "rgba(213, 213, 220, 0.75)" : "rgba(8, 8, 10, 0.75)",
+                        backdropFilter: "blur(14px)",
+                        WebkitBackdropFilter: "blur(14px)",
                     }}
                 >
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="w-full max-w-sm rounded-3xl p-5 bg-[#08080a] border border-white/10 shadow-2xl"
+                        className={`w-full max-w-sm rounded-3xl p-5 shadow-2xl border transition-colors duration-300 ${
+                            theme === "light"
+                                ? "bg-white border-black/10 shadow-black/5"
+                                : "bg-[#08080a] border-white/10"
+                        }`}
                     >
                         <div className="flex items-start gap-3">
-                            <div className="mt-1 flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+                            <div className={`mt-1 flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-300 ${
+                                theme === "light"
+                                    ? "bg-emerald-500/15 text-emerald-600"
+                                    : "bg-emerald-500/10 text-emerald-300"
+                            }`}>
                                 <Navigation2 size={16} />
                             </div>
                             <div className="flex-1">
-                                <div className="text-sm font-semibold text-white">
+                                <div className={`text-sm font-semibold transition-colors duration-300 ${
+                                    theme === "light" ? "text-black" : "text-white"
+                                }`}>
                                     Use device compass?
                                 </div>
-                                <div className="mt-1 text-xs leading-relaxed text-white/55">
+                                <div className={`mt-1 text-xs leading-relaxed transition-colors duration-300 ${
+                                    theme === "light" ? "text-black/55" : "text-white/55"
+                                }`}>
                                     The needle points toward your destination
                                     using your phone's magnetometer.
                                 </div>
@@ -305,7 +616,11 @@ export default function CompassView({ onCancel }) {
                                     await requestOrientation();
                                     setShowOrientPrompt(false);
                                 }}
-                                className="flex-1 rounded-full bg-emerald-500/90 px-4 py-2.5 text-sm font-semibold text-black active:scale-[0.98]"
+                                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold active:scale-[0.98] transition-colors duration-300 ${
+                                    theme === "light"
+                                        ? "bg-emerald-600 text-white"
+                                        : "bg-emerald-500/90 text-black"
+                                }`}
                             >
                                 Allow
                             </button>
@@ -315,7 +630,11 @@ export default function CompassView({ onCancel }) {
                                     haptics.tap();
                                     setShowOrientPrompt(false);
                                 }}
-                                className="rounded-full px-4 py-2.5 text-sm font-medium text-white/55"
+                                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-300 ${
+                                    theme === "light"
+                                        ? "text-black/55"
+                                        : "text-white/55"
+                                }`}
                             >
                                 Not now
                             </button>

@@ -138,7 +138,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 zoom: targetZoom,
                 pitch: navViewModeRef.current === "3d" ? 60 : 0,
                 padding: { top: 0, bottom: 250, left: 0, right: 0 },
-                duration: 900,
+                duration: 200,
                 easing: (t) => t
             });
 
@@ -473,8 +473,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             );
 
             const destBg = theme === "light" ? "rgba(255,255,255,0.95)" : "rgba(20,20,24,0.85)";
-            const destBoxShadow = theme === "light" 
-                ? `0 8px 24px rgba(0,0,0,0.12), 0 0 0 4px ${accentColor}1A` 
+            const destBoxShadow = theme === "light"
+                ? `0 8px 24px rgba(0,0,0,0.12), 0 0 0 4px ${accentColor}1A`
                 : `0 8px 24px rgba(0,0,0,0.5), 0 0 0 4px ${accentColor}15`;
 
             el.style.cssText =
@@ -1007,10 +1007,10 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
     const handleRecenter = useCallback(() => {
         const map = mapRef.current;
         if (!map || !mapReady || !userLocation) return;
-        
+
         haptics.tap();
         setTrackingMode(true);
-        
+
         const targetZoom = travelMode === "driving" ? 16 : 18.5;
         map.easeTo({
             center: [userLocation.lng, userLocation.lat],
@@ -1035,7 +1035,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             <div
                 ref={containerRef}
                 className="absolute inset-0 h-full w-full"
-                style={{ 
+                style={{
                     background: "#08080A",
                     transform: "translate3d(0,0,0)",
                     isolation: "isolate",
@@ -1071,13 +1071,21 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 opacity: 0,
                                 y: -16,
                             }}
-                            className="absolute left-4 right-4 z-30 rounded-2xl bg-black/65 border border-white/10 p-4 backdrop-blur-xl shadow-2xl"
+                            className={`absolute left-4 right-4 z-30 rounded-2xl p-4 backdrop-blur-xl shadow-2xl border transition-colors duration-300 ${
+                                theme === "light"
+                                    ? "bg-white/80 border-black/10 shadow-black/5"
+                                    : "bg-black/65 border-white/10"
+                            }`}
                             style={{
                                 top: "calc(env(safe-area-inset-top, 0px) + 16px)",
                             }}
                         >
                             <div className="flex gap-3 items-center">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+                                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 ${
+                                    theme === "light"
+                                        ? "bg-emerald-500/15 text-emerald-600"
+                                        : "bg-emerald-500/10 text-emerald-300"
+                                }`}>
                                     <Navigation2
                                         size={16}
                                         style={{ transform: "rotate(45deg)" }}
@@ -1085,14 +1093,18 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 </div>
 
                                 <div>
-                                    <div className="text-xs font-semibold text-white leading-tight">
+                                    <div className={`text-xs font-semibold leading-tight transition-colors duration-300 ${
+                                        theme === "light" ? "text-black" : "text-white"
+                                    }`}>
                                         {nextStep
                                             .maneuver
                                             ?.instruction ??
                                             "Continue"}
                                     </div>
 
-                                    <div className="mt-0.5 text-[10px] text-white/60">
+                                    <div className={`mt-0.5 text-[10px] transition-colors duration-300 ${
+                                        theme === "light" ? "text-black/50" : "text-white/60"
+                                    }`}>
                                         {formatDistance(
                                             nextStep.distance,
                                             units
@@ -1192,8 +1204,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                             setTravelMode(key);
                                         }}
                                         className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${active
-                                                ? "bg-white/10 text-white ring-1 ring-white/10"
-                                                : "text-white/45"
+                                            ? "bg-white/10 text-white ring-1 ring-white/10"
+                                            : "text-white/45"
                                             }`}
                                     >
                                         <Icon size={12} strokeWidth={1.8} />

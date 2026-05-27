@@ -56,11 +56,10 @@ export default function TabBar({ currentTab, onChange }) {
                                 stiffness: 380,
                                 damping: 32,
                             }}
-                            className={`relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-[20px] text-[11px] font-semibold ${
-                                isActive
+                            className={`relative flex h-12 items-center justify-center overflow-hidden whitespace-nowrap rounded-[20px] text-[11px] font-semibold ${isActive
                                     ? "flex-[2] gap-1.5 px-3 text-white"
                                     : "flex-1 text-white/55"
-                            }`}
+                                }`}
                         >
                             {isActive && (
                                 <motion.span

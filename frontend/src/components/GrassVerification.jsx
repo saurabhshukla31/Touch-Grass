@@ -67,7 +67,7 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
             setTimeout(() => {
                 if (videoRef.current) {
                     videoRef.current.srcObject = s;
-                    videoRef.current.play().catch(() => {});
+                    videoRef.current.play().catch(() => { });
                 }
             }, 50);
         } catch (e) {
@@ -125,9 +125,9 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[80] flex items-end justify-center"
-                style={{ 
-                    background: theme === "light" ? "rgba(0,0,0,0.12)" : "rgba(8,8,10,0.65)", 
-                    backdropFilter: "blur(12px)" 
+                style={{
+                    background: theme === "light" ? "rgba(0,0,0,0.12)" : "rgba(8,8,10,0.65)",
+                    backdropFilter: "blur(12px)"
                 }}
                 data-testid="grass-verification"
             >
@@ -215,7 +215,7 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                                             "radial-gradient(60% 60% at 50% 50%, rgba(16,185,129,0.12), transparent 70%)",
                                     }}
                                 />
-                                <div 
+                                <div
                                     className="pointer-events-none absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-emerald-300/40"
                                     style={{
                                         boxShadow: theme === "light"
@@ -240,11 +240,10 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                     {stage === "result" && result && (
                         <>
                             <div
-                                className={`text-[10px] font-bold uppercase tracking-[0.22em] ${
-                                    result.success
+                                className={`text-[10px] font-bold uppercase tracking-[0.22em] ${result.success
                                         ? "text-emerald-300"
                                         : "text-amber-300"
-                                }`}
+                                    }`}
                             >
                                 {result.success ? "Verified" : "Try again"}
                             </div>

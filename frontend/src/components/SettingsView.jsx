@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Footprints, Bike, Car, Map, Navigation, Globe, Compass, Heart, Trees, Shield, Users, Sparkles, Sun, Moon } from "lucide-react";
+import { Footprints, Bike, Car, Map, Navigation, Globe, Compass, Heart, Trees, Shield, Users, Sparkles, Sun, Moon, SunMoon } from "lucide-react";
 import { useApp } from "@/lib/AppState";
 import { haptics } from "@/lib/haptics";
 import { APP_VERSION } from "@/lib/version";
@@ -13,7 +13,7 @@ function ModeSelector({ value, onChange }) {
         { value: "social", icon: Users, color: "violet", label: "Social" },
         { value: "essentials", icon: Shield, color: "amber", label: "Essentials" },
     ];
-    
+
     const activeColors = {
         emerald: "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.25)]",
         rose: "bg-rose-500/25 text-rose-300 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.25)]",
@@ -46,11 +46,10 @@ function ModeSelector({ value, onChange }) {
                                 haptics.success();
                                 onChange(m.value);
                             }}
-                            className={`flex flex-col items-center justify-center rounded-[14px] aspect-square w-12 border transition-all duration-300 ${
-                                active
+                            className={`flex flex-col items-center justify-center rounded-[14px] aspect-square w-12 border transition-all duration-300 ${active
                                     ? activeColors[m.color]
                                     : "border-transparent text-white/60 hover:text-white/85 hover:bg-white/[0.04]"
-                            }`}
+                                }`}
                         >
                             <Icon size={18} strokeWidth={active ? 2.5 : 2} />
                         </button>
@@ -87,16 +86,15 @@ function SegmentedIcon({ value, options, onChange, testIdPrefix }) {
                             haptics.success();
                             onChange(opt.value);
                         }}
-                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.5 transition-[background-color,color,box-shadow,border-color] duration-300 group ${
-                            active
+                        className={`flex flex-1 items-center justify-center gap-1.5 rounded-[14px] py-2.5 transition-[background-color,color,box-shadow,border-color] duration-300 group ${active
                                 ? "bg-white/15 text-white ring-1 ring-white/20 shadow-[0_2px_10px_rgba(0,0,0,0.2)]"
                                 : "text-white/60 hover:text-white/80 hover:bg-white/[0.04]"
-                        }`}
+                            }`}
                     >
                         {Icon && (
-                            <Icon 
-                                size={opt.label ? 12 : 18} 
-                                strokeWidth={active ? 2.5 : 2} 
+                            <Icon
+                                size={opt.label ? 12 : 18}
+                                strokeWidth={active ? 2.5 : 2}
                                 className={`transition-colors duration-300 ${iconColor}`}
                             />
                         )}
@@ -151,10 +149,6 @@ export default function SettingsView() {
         setTheme,
     } = useApp();
 
-    const toggleTheme = () => {
-        haptics.tap();
-        setTheme(theme === "light" ? "dark" : "light");
-    };
 
     return (
         <div
@@ -162,7 +156,7 @@ export default function SettingsView() {
             className="relative h-[100dvh] w-full overflow-hidden px-6 pt-safe flex flex-col tg-no-select pb-[96px]"
         >
             <div className="tg-ambient" />
-            
+
             <motion.header
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -177,7 +171,7 @@ export default function SettingsView() {
                 </h1>
             </motion.header>
 
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="relative z-10 flex-1 flex flex-col justify-between mt-4 mb-2 min-h-0 w-full max-w-[400px] mx-auto"
@@ -228,7 +222,7 @@ export default function SettingsView() {
                     </SettingItem>
                 </div>
 
-                <div className="grid grid-cols-[2fr_1fr] gap-3">
+                <div className="grid grid-cols-2 gap-3">
                     <SettingItem label="Units" icon={Globe} color="cyan">
                         <SegmentedIcon
                             testIdPrefix="units"
@@ -241,14 +235,16 @@ export default function SettingsView() {
                         />
                     </SettingItem>
 
-                    <SettingItem label="Theme" icon={theme === "light" ? Moon : Sun} color="cyan">
-                        <button
-                            onClick={toggleTheme}
-                            className="flex w-full h-[46px] items-center justify-center rounded-[18px] bg-black/25 ring-1 ring-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/[0.04] active:scale-95 transition-all duration-200"
-                            aria-label="Toggle Theme"
-                        >
-                            {theme === "light" ? <Moon size={18} strokeWidth={2.2} /> : <Sun size={18} strokeWidth={2.2} />}
-                        </button>
+                    <SettingItem label="Theme" icon={SunMoon} color="cyan">
+                        <SegmentedIcon
+                            testIdPrefix="theme"
+                            value={theme}
+                            onChange={setTheme}
+                            options={[
+                                { value: "light", icon: Sun, label: "Light", color: "amber" },
+                                { value: "dark", icon: Moon, label: "Dark", color: "blue" },
+                            ]}
+                        />
                     </SettingItem>
                 </div>
             </motion.div>

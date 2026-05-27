@@ -15,13 +15,13 @@ const AppCtx = createContext(null);
 const initial = {
     mode: "idle", // 'idle' | 'resolving' | 'active'
     currentTab: "home", // 'home' | 'compass' | 'map' | 'insights' | 'settings'
-    homeOverlay: null, // 'insights' | 'settings' | null  (when idle and user opened those)
-    selectedCategory: null, // category object from /lib/categories
+    homeOverlay: null, // 'insights' | 'settings' | null
+    selectedCategory: null, 
     destination: null, // { name, address, lng, lat, ... }
     userLocation: null, // { lat, lng, accuracy, heading, speed, ts }
     travelMode: "walking",
     navStarted: false,
-    sessionStartedAt: null, // Date.now() when session became active
+    sessionStartedAt: null, 
     units: "metric",
     hapticsEnabled: true,
     mapViewMode: "2d",
@@ -29,7 +29,7 @@ const initial = {
     appMode: "explore",
     locationPermission: "unknown", // 'unknown' | 'granted' | 'denied'
     orientationPermission: "unknown",
-    heading: null, // device heading degrees (0-360), magnetometer
+    heading: null, 
     error: null,
     pillOpen: false,
     theme: "dark",
@@ -56,20 +56,23 @@ export function AppProvider({ children }) {
         setState((s) => ({ ...s, ...patch }));
     }, []);
 
-    // Load persisted settings once.
+    // Load persisted settings cleanly on mount
     useEffect(() => {
         (async () => {
             try {
                 const s = await getSettings();
-                setHapticsEnabled(true);
                 
+                // FIX: Respect the user's saved preference instead of hardcoding 'true'
+                const isHapticTrue = s.hapticsEnabled !== false; 
+                setHapticsEnabled(isHapticTrue);
+
                 const currentTheme = s.theme || "dark";
 
                 setState((prev) => ({
                     ...prev,
                     units: s.units,
                     travelMode: s.defaultTravelMode,
-                    hapticsEnabled: true,
+                    hapticsEnabled: isHapticTrue,
                     mapViewMode: s.mapViewMode || "2d",
                     navViewMode: s.navViewMode || "3d",
                     appMode: s.appMode || "explore",
@@ -81,7 +84,7 @@ export function AppProvider({ children }) {
         })();
     }, []);
 
-    // Begin watching geolocation (call after permission granted).
+    // Begin watching geolocation
     const startWatchingLocation = useCallback(() => {
         if (!("geolocation" in navigator)) {
             update({ locationPermission: "denied" });
@@ -90,8 +93,7 @@ export function AppProvider({ children }) {
         if (watchIdRef.current != null) return;
         const id = navigator.geolocation.watchPosition(
             (pos) => {
-                const { latitude, longitude, accuracy, heading, speed } =
-                    pos.coords;
+                const { latitude, longitude, accuracy, heading, speed } = pos.coords;
                 setState((s) => ({
                     ...s,
                     locationPermission: "granted",
@@ -127,9 +129,7 @@ export function AppProvider({ children }) {
         }
     }, []);
 
-    // Ask once and start. Tries high-accuracy first, then falls back to a
-    // low-accuracy attempt — some browser/headless contexts return errors
-    // for high-accuracy requests even when permission is granted.
+    // Fallback geolocation execution sequence
     const requestLocation = useCallback(
         () =>
             new Promise((resolve) => {
@@ -139,8 +139,7 @@ export function AppProvider({ children }) {
                     return;
                 }
                 const onSuccess = (pos) => {
-                    const { latitude, longitude, accuracy, heading, speed } =
-                        pos.coords;
+                    const { latitude, longitude, accuracy, heading, speed } = pos.coords;
                     const loc = {
                         lat: latitude,
                         lng: longitude,
@@ -169,7 +168,6 @@ export function AppProvider({ children }) {
                                         : s.locationPermission,
                                 error: err.message,
                             }));
-                            // eslint-disable-next-line no-console
                             console.warn("[tg] geolocation low-accuracy failed", err);
                             resolve(null);
                         },
@@ -179,11 +177,7 @@ export function AppProvider({ children }) {
                 navigator.geolocation.getCurrentPosition(
                     onSuccess,
                     (err) => {
-                        // eslint-disable-next-line no-console
-                        console.warn(
-                            "[tg] geolocation high-accuracy failed, retrying low-accuracy",
-                            err,
-                        );
+                        console.warn("[tg] geolocation high-accuracy failed, trying fallback", err);
                         tryLow();
                     },
                     { enableHighAccuracy: true, timeout: 8000 },
@@ -192,7 +186,7 @@ export function AppProvider({ children }) {
         [startWatchingLocation, update],
     );
 
-    // Device orientation (compass heading) — needs explicit permission on iOS.
+    // Device orientation event stream pipeline
     const orientHandlerRef = useRef(null);
     const requestOrientation = useCallback(async () => {
         try {
@@ -202,8 +196,7 @@ export function AppProvider({ children }) {
             if (Need) {
                 const result = await DeviceOrientationEvent.requestPermission();
                 update({
-                    orientationPermission:
-                        result === "granted" ? "granted" : "denied",
+                    orientationPermission: result === "granted" ? "granted" : "denied",
                 });
                 if (result !== "granted") return false;
             } else {
@@ -212,17 +205,15 @@ export function AppProvider({ children }) {
             if (orientHandlerRef.current) return true;
             const handler = (e) => {
                 let h = null;
-                // Priority 1: iOS true-north calibrated compass
                 if (typeof e.webkitCompassHeading === "number") {
                     h = e.webkitCompassHeading;
                 } else if (e.alpha !== null && typeof e.alpha === "number") {
-                    // Priority 2: Android alpha (deviceorientationabsolute gives true-north)
                     h = (360 - e.alpha + 360) % 360;
                 }
 
                 if (h === null || isNaN(h)) return;
 
-                // Circular angular low-pass filter on unit vector
+                // Circular angular low-pass filter on unit vector coordinates
                 const rad = (h * Math.PI) / 180;
                 const cos = Math.cos(rad);
                 const sin = Math.sin(rad);
@@ -232,7 +223,7 @@ export function AppProvider({ children }) {
                     lastVectorRef.current.sin = sin;
                     lastVectorRef.current.initialized = true;
                 } else {
-                    const k = 0.8; // Smoothing factor (0.8 = smooth, 0.2 = fast/raw)
+                    const k = 0.8; 
                     lastVectorRef.current.cos = lastVectorRef.current.cos * k + cos * (1 - k);
                     lastVectorRef.current.sin = lastVectorRef.current.sin * k + sin * (1 - k);
                 }
@@ -245,7 +236,6 @@ export function AppProvider({ children }) {
                 headingListeners.current.forEach((cb) => cb(normalizedHeading));
             };
 
-            // Use absolute device orientation if supported on Android to get actual true-north
             if ("ondeviceorientationabsolute" in window) {
                 window.addEventListener("deviceorientationabsolute", handler, true);
             } else {
@@ -279,9 +269,7 @@ export function AppProvider({ children }) {
         });
     }, []);
 
-    // Automatically manage pillOpen timer when destination changes or tab switches
     useEffect(() => {
-        // Never auto-open — user must click to expand
         if (!state.destination) {
             setState((s) => ({ ...s, pillOpen: false }));
             if (pillTimerRef.current) {
@@ -300,16 +288,8 @@ export function AppProvider({ children }) {
         () => () => {
             stopWatchingLocation();
             if (orientHandlerRef.current) {
-                window.removeEventListener(
-                    "deviceorientationabsolute",
-                    orientHandlerRef.current,
-                    true,
-                );
-                window.removeEventListener(
-                    "deviceorientation",
-                    orientHandlerRef.current,
-                    true,
-                );
+                window.removeEventListener("deviceorientationabsolute", orientHandlerRef.current, true);
+                window.removeEventListener("deviceorientation", orientHandlerRef.current, true);
                 orientHandlerRef.current = null;
             }
         },
@@ -329,56 +309,32 @@ export function AppProvider({ children }) {
 
     const setTheme = useCallback(async (theme) => {
         setState((s) => ({ ...s, theme }));
-        try {
-            await persistSettings({ theme });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ theme }); } catch { /* ignore */ }
     }, []);
 
     const setUnits = useCallback(async (units) => {
         setState((s) => ({ ...s, units }));
-        try {
-            await persistSettings({ units });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ units }); } catch { /* ignore */ }
     }, []);
 
     const setTravelMode = useCallback(async (travelMode) => {
         setState((s) => ({ ...s, travelMode }));
-        try {
-            await persistSettings({ defaultTravelMode: travelMode });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ defaultTravelMode: travelMode }); } catch { /* ignore */ }
     }, []);
 
     const setMapViewMode = useCallback(async (mapViewMode) => {
         setState((s) => ({ ...s, mapViewMode }));
-        try {
-            await persistSettings({ mapViewMode });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ mapViewMode }); } catch { /* ignore */ }
     }, []);
 
     const setNavViewMode = useCallback(async (navViewMode) => {
         setState((s) => ({ ...s, navViewMode }));
-        try {
-            await persistSettings({ navViewMode });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ navViewMode }); } catch { /* ignore */ }
     }, []);
 
     const setAppMode = useCallback(async (appMode) => {
         setState((s) => ({ ...s, appMode }));
-        try {
-            await persistSettings({ appMode });
-        } catch {
-            /* ignore */
-        }
+        try { await persistSettings({ appMode }); } catch { /* ignore */ }
     }, []);
 
     const resetSession = useCallback(() => {
@@ -413,23 +369,7 @@ export function AppProvider({ children }) {
             subscribeHeading,
             setTheme,
         }),
-        [
-            state,
-            update,
-            requestLocation,
-            startWatchingLocation,
-            stopWatchingLocation,
-            requestOrientation,
-            setUnits,
-            setTravelMode,
-            setMapViewMode,
-            setNavViewMode,
-            setAppMode,
-            resetSession,
-            togglePill,
-            subscribeHeading,
-            setTheme,
-        ],
+        [state, update, requestLocation, startWatchingLocation, stopWatchingLocation, requestOrientation, setUnits, setTravelMode, setMapViewMode, setNavViewMode, setAppMode, resetSession, togglePill, subscribeHeading, setTheme]
     );
 
     return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
