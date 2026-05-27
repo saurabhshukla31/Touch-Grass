@@ -80,11 +80,6 @@ frontend/
 │   └── bump-version.js        # Node automation script to increment app version
 ```
 
-## Codebase Audit
-
-A professional quality, production-grade audit of the codebase has been completed.
-You can review the detailed architectural findings, memory leak notes, and stability risks in the **[Codebase Audit Report](file:///C:/Users/saura/.gemini/antigravity-ide/brain/60caefaa-1cbc-4c43-a168-6951109ee049/codebase_audit.md)**.
-
 ## License
 
 The MIT License (MIT)
