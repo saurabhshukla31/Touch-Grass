@@ -39,11 +39,18 @@ export default function CompassView({ onCancel }) {
     const proximityRef = useRef({ at100: false, at25: false });
 
     useEffect(() => {
-        if (orientationPermission === "unknown") {
+        const requiresPermission =
+            typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function";
+
+        if (requiresPermission && orientationPermission === "unknown") {
             // On iOS this needs to be triggered by a user gesture, so we prompt.
             setShowOrientPrompt(true);
+        } else if (!requiresPermission && orientationPermission === "unknown") {
+            // Android and other platforms listen immediately without modal friction.
+            requestOrientation();
         }
-    }, [orientationPermission]);
+    }, [orientationPermission, requestOrientation]);
 
     const { distance, bearing, etaSec, bearingLabel } = useMemo(() => {
         if (!userLocation || !destination)

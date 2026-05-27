@@ -9,7 +9,6 @@ import {
   Landmark,
   Dumbbell,
   Wine,
-  Shuffle,
   UtensilsCrossed,
   Gem,
   Binoculars,
@@ -315,17 +314,6 @@ export const CATEGORIES = [
     glow: "#16a34a",
     Icon: Trophy,
   },
-  {
-    key: "random",
-    label: "Random",
-    searchCanonical: null,
-    searchAlternatives: [],
-    accent: "#94a3b8",
-    accentSoft: "radial-gradient(ellipse at 60% 30%, #0f172a88 0%, #0a0a0a 70%)",
-    iconKey: "shuffle",
-    glow: "#64748b",
-    Icon: Shuffle,
-  },
 ];
 
 export const MODES = {
@@ -369,5 +357,4 @@ export const MODES = {
 export const getCategoryByKey = (key) =>
   CATEGORIES.find((c) => c.key === key) || null;
 
-// The pool from which Random picks (everything except Random itself).
-export const RANDOM_POOL = CATEGORIES.filter((c) => c.key !== "random");
+

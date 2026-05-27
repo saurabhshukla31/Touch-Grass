@@ -35,7 +35,8 @@ self.addEventListener("fetch", (e) => {
     // Never intercept Mapbox / API calls.
     if (
         url.hostname.includes("mapbox.com") ||
-        url.pathname.startsWith("/api/")
+        url.pathname.startsWith("/api/") ||
+        url.pathname.includes("version.json")
     ) {
         return;
     }

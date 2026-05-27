@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, Check, RotateCcw, X } from "lucide-react";
 import { savePhoto } from "@/lib/db";
@@ -53,6 +53,14 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
 
     useEffect(() => () => stopStream(), []);
 
+    const setVideoRef = useCallback((el) => {
+        videoRef.current = el;
+        if (el && streamRef.current) {
+            el.srcObject = streamRef.current;
+            el.play().catch(() => { });
+        }
+    }, []);
+
     const openCamera = async () => {
         haptics.tap();
         setError(null);
@@ -63,13 +71,6 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
             });
             streamRef.current = s;
             setStage("camera");
-            // Wait for video element to mount
-            setTimeout(() => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = s;
-                    videoRef.current.play().catch(() => { });
-                }
-            }, 50);
         } catch (e) {
             setError(
                 "Camera unavailable. You can still finish the session.",
@@ -203,7 +204,7 @@ export default function GrassVerification({ session, onComplete, onSkip }) {
                             </h2>
                             <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-black">
                                 <video
-                                    ref={videoRef}
+                                    ref={setVideoRef}
                                     playsInline
                                     muted
                                     className="absolute inset-0 h-full w-full object-cover"

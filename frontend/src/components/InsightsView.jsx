@@ -78,24 +78,34 @@ function StatCard({ label, value, icon: Icon, color = "emerald" }) {
 // ── Weekly bar chart (pure CSS) ───────────────────────────────
 function WeeklyChart({ sessions, units, theme }) {
     const bars = useMemo(() => {
+        const sessionMap = new Map();
+        sessions.forEach((s) => {
+            if (!s.startedAt) return;
+            const d = new Date(s.startedAt);
+            d.setHours(0, 0, 0, 0);
+            const time = d.getTime();
+            if (!sessionMap.has(time)) {
+                sessionMap.set(time, { distance: 0, count: 0 });
+            }
+            const record = sessionMap.get(time);
+            record.distance += s.actualDistanceKm || (s.distance || 0) / 1000;
+            record.count += 1;
+        });
+
         const days = [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         for (let i = 6; i >= 0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
-            days.push({ date: d, distance: 0, sessions: 0 });
+            const time = d.getTime();
+            const record = sessionMap.get(time) || { distance: 0, count: 0 };
+            days.push({
+                date: d,
+                distance: record.distance,
+                sessions: record.count
+            });
         }
-        sessions.forEach((s) => {
-            if (!s.startedAt) return;
-            const d = new Date(s.startedAt);
-            d.setHours(0, 0, 0, 0);
-            const day = days.find((x) => x.date.getTime() === d.getTime());
-            if (day) {
-                day.distance += s.actualDistanceKm || (s.distance || 0) / 1000;
-                day.sessions += 1;
-            }
-        });
         return days;
     }, [sessions]);
 
@@ -271,102 +281,103 @@ export default function InsightsView() {
         }
     };
 
-    // ── Computed stats ─────────────────────────────────────────
+    // Build O(1) date-keyed lookup dictionary and single-pass metrics aggregation
     const stats = useMemo(() => {
-        const totalActualKm = sessions.reduce(
-            (a, s) => a + (s.actualDistanceKm || (s.distance || 0) / 1000),
-            0,
-        );
-        const totalDurationSec = sessions.reduce(
-            (a, s) => a + (s.durationSec || 0),
-            0,
-        );
-
-        const longestSession = sessions.reduce(
-            (a, s) => Math.max(a, s.durationSec || 0),
-            0,
-        );
-        const avgDuration =
-            sessions.length > 0
-                ? Math.round(totalDurationSec / sessions.length)
-                : 0;
-
-        // Unique places
-        const placeNames = new Set(sessions.map((s) => s.destinationName));
-
-        // Most visited
+        let totalActualKm = 0;
+        let totalDurationSec = 0;
+        let longestSession = 0;
+        const placeNames = new Set();
         const visitCounts = {};
-        sessions.forEach((s) => {
-            const n = s.destinationName;
-            visitCounts[n] = (visitCounts[n] || 0) + 1;
-        });
-        const mostVisited = Object.entries(visitCounts).sort(
-            (a, b) => b[1] - a[1],
-        )[0];
-
-        // Favourite category
         const catCounts = {};
+
+        let walkCount = 0;
+        let bikeCount = 0;
+        let carCount = 0;
+        let walkKm = 0;
+        let bikeKm = 0;
+
         sessions.forEach((s) => {
-            const k = s.categoryLabel || s.categoryKey;
-            catCounts[k] = (catCounts[k] || 0) + 1;
+            const dist = s.actualDistanceKm || (s.distance || 0) / 1000;
+            const dur = s.durationSec || 0;
+
+            totalActualKm += dist;
+            totalDurationSec += dur;
+            longestSession = Math.max(longestSession, dur);
+
+            if (s.destinationName) {
+                placeNames.add(s.destinationName);
+                visitCounts[s.destinationName] = (visitCounts[s.destinationName] || 0) + 1;
+            }
+
+            const catKey = s.categoryLabel || s.categoryKey;
+            if (catKey) {
+                catCounts[catKey] = (catCounts[catKey] || 0) + 1;
+            }
+
+            const mode = s.mode || "walk";
+            if (mode === "walk") {
+                walkCount++;
+                walkKm += dist;
+            } else if (mode === "bike") {
+                bikeCount++;
+                bikeKm += dist;
+            } else if (mode === "car") {
+                carCount++;
+            }
         });
-        const favCat = Object.entries(catCounts).sort(
-            (a, b) => b[1] - a[1],
-        )[0];
 
+        const avgDuration = sessions.length > 0 ? Math.round(totalDurationSec / sessions.length) : 0;
+        const mostVisited = Object.entries(visitCounts).sort((a, b) => b[1] - a[1])[0];
+        const favCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
         const streaks = calculateStreaks(sessions);
-
-        // Mode-specific
-        const walkSessions = sessions.filter(
-            (s) => (s.mode || "walk") === "walk",
-        );
-        const bikeSessions = sessions.filter((s) => s.mode === "bike");
-        const carSessions = sessions.filter((s) => s.mode === "car");
 
         return {
             totalActualKm,
             totalDurationSec,
-
             longestSession,
             avgDuration,
             uniquePlaces: placeNames.size,
             mostVisited: mostVisited ? mostVisited[0] : null,
             favCat: favCat ? favCat[0] : null,
             streaks,
-            walkCount: walkSessions.length,
-            bikeCount: bikeSessions.length,
-            carCount: carSessions.length,
-            walkKm: walkSessions.reduce(
-                (a, s) => a + (s.actualDistanceKm || (s.distance || 0) / 1000),
-                0,
-            ),
-            bikeKm: bikeSessions.reduce(
-                (a, s) => a + (s.actualDistanceKm || (s.distance || 0) / 1000),
-                0,
-            ),
+            walkCount,
+            bikeCount,
+            carCount,
+            walkKm,
+            bikeKm,
         };
     }, [sessions]);
 
     // ── Heatmap (30 days) ──────────────────────────────────────
     const heat = useMemo(() => {
+        const sessionMap = new Map();
+        sessions.forEach((s) => {
+            if (!s.startedAt) return;
+            const d = new Date(s.startedAt);
+            d.setHours(0, 0, 0, 0);
+            const time = d.getTime();
+            if (!sessionMap.has(time)) {
+                sessionMap.set(time, { count: 0, durationSec: 0 });
+            }
+            const record = sessionMap.get(time);
+            record.count += 1;
+            record.durationSec += s.durationSec || 0;
+        });
+
         const days = [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         for (let i = 29; i >= 0; i--) {
             const d = new Date(today);
             d.setDate(d.getDate() - i);
-            days.push({ date: d, count: 0, totalMin: 0 });
+            const time = d.getTime();
+            const record = sessionMap.get(time) || { count: 0, durationSec: 0 };
+            days.push({
+                date: d,
+                count: record.count,
+                totalMin: record.durationSec / 60
+            });
         }
-        sessions.forEach((s) => {
-            if (!s.startedAt) return;
-            const d = new Date(s.startedAt);
-            d.setHours(0, 0, 0, 0);
-            const day = days.find((x) => x.date.getTime() === d.getTime());
-            if (day) {
-                day.count += 1;
-                day.totalMin += (s.durationSec || 0) / 60;
-            }
-        });
         return days;
     }, [sessions]);
     const maxHeat = Math.max(1, ...heat.map((d) => d.totalMin || d.count));

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
 import { AppProvider, useApp } from "@/lib/AppState";
-import { CATEGORIES, RANDOM_POOL, getCategoryByKey } from "@/lib/categories";
+import { CATEGORIES, getCategoryByKey } from "@/lib/categories";
 import { findNearestPOI, hasMapboxToken } from "@/lib/mapbox";
 import { saveSession } from "@/lib/db";
 import { haversineMeters, MODE_MAP } from "@/lib/geo";

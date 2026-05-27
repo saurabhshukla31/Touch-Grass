@@ -17,7 +17,16 @@ export class SessionTracker {
     this.reset();
     this._watchId = null;
     this._lastAcceptedTs = 0;
-    this._onChange = null; // callback
+    this._listeners = new Set();
+  }
+
+  subscribe(cb) {
+    this._listeners.add(cb);
+    return () => this.unsubscribe(cb);
+  }
+
+  unsubscribe(cb) {
+    this._listeners.delete(cb);
   }
 
   reset() {
@@ -107,13 +116,15 @@ export class SessionTracker {
     this._lastAcceptedTs = now;
 
     // Notify listener
-    this._onChange?.({
+    // Notify all listeners
+    const data = {
       actualDistanceKm: +this.actualDistanceKm.toFixed(3),
       routePoints: this.routePoints,
       durationSec: this.startedAt
         ? Math.round((now - this.startedAt) / 1000)
         : 0,
-    });
+    };
+    this._listeners.forEach((cb) => cb(data));
   }
 }
 
@@ -139,14 +150,12 @@ export function useSessionTracker() {
 
   const intervalRef = useRef(null);
 
-  // Wire up the tracker's onChange callback
+  // Wire up the tracker's updates callback
   useEffect(() => {
-    trackerInstance._onChange = (snap) => {
+    const handleUpdate = (snap) => {
       setState((s) => ({ ...s, ...snap, isTracking: true }));
     };
-    return () => {
-      trackerInstance._onChange = null;
-    };
+    return trackerInstance.subscribe(handleUpdate);
   }, []);
 
   const start = useCallback((mode) => {

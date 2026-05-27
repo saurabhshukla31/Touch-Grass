@@ -6,10 +6,45 @@ import { useApp } from "@/lib/AppState";
 
 const cardSpring = { type: "spring", stiffness: 380, damping: 28, mass: 0.7 };
 
-function HeroCard({ category, onSelect, theme }) {
+function CategoryCard({ category, onSelect, theme, variant = "standard" }) {
     if (!category) return null;
+    const isHero = variant === "hero";
     const accentColor = category.accent;
     const glowColor = category.glow || category.accent;
+
+    const hoverScale = isHero ? 1.015 : 1.02;
+    const tapScale = isHero ? 0.98 : 0.97;
+    const heightClass = isHero ? "h-full" : "h-[115px]";
+    const roundedClass = isHero ? "rounded-[26px]" : "rounded-2xl";
+    
+    const borderOpacityLight = isHero ? "B3" : "A6";
+    const borderOpacityDark = isHero ? "66" : "59";
+
+    const borderStyle = theme === "light"
+        ? `1px solid ${accentColor}${borderOpacityLight}`
+        : `1px solid ${accentColor}${borderOpacityDark}`;
+
+    const boxShadowStyle = theme === "light"
+        ? (isHero
+            ? `0 4px 10px rgba(0, 0, 0, 0.01), 0 10px 24px rgba(0, 0, 0, 0.03), 0 20px 38px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px ${glowColor}0D`
+            : `0 4px 8px rgba(0, 0, 0, 0.01), 0 8px 16px rgba(0, 0, 0, 0.02), 0 16px 28px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 0 6px ${glowColor}08`)
+        : (isHero
+            ? `0 4px 12px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 10px ${glowColor}33, inset 0 0 6px ${glowColor}20, inset 0 1px 0 rgba(255, 255, 255, 0.04)`
+            : `0 4px 10px rgba(0, 0, 0, 0.25), 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 8px ${glowColor}22, inset 0 0 4px ${glowColor}15, inset 0 1px 0 rgba(255, 255, 255, 0.03)`);
+
+    const gradientOpacity = isHero ? [0.35, 0.65, 0.35] : [0.3, 0.6, 0.3];
+    const gradientScale = isHero ? [0.95, 1.08, 0.95] : [0.92, 1.06, 0.92];
+    const durationTime = isHero ? 5 : 5.5;
+
+    const iconSize = isHero ? 32 : 24;
+    const iconContainerSize = isHero ? 44 : 32;
+    const shadowFilter = theme === "light"
+        ? (isHero ? `drop-shadow(0 1.5px 2.5px rgba(0, 0, 0, 0.16))` : `drop-shadow(0 1px 2px rgba(0, 0, 0, 0.14))`)
+        : (isHero ? `drop-shadow(0 0 8px ${glowColor}66)` : `drop-shadow(0 0 6px ${glowColor}66)`);
+        
+    const textClass = isHero ? "text-[20px] font-black" : "text-[13px] font-extrabold";
+    const gapClass = isHero ? "gap-2.5" : "gap-2";
+
     return (
         <motion.button
             data-testid={`category-${category.key}`}
@@ -17,17 +52,13 @@ function HeroCard({ category, onSelect, theme }) {
                 haptics.select();
                 onSelect(category);
             }}
-            whileHover={{ scale: 1.015, y: -2 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: hoverScale, y: -2 }}
+            whileTap={{ scale: tapScale }}
             transition={cardSpring}
-            className="group relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-[26px] tg-glass tg-no-select"
+            className={`group relative flex ${heightClass} w-full flex-col items-center justify-center overflow-hidden ${roundedClass} tg-glass tg-no-select`}
             style={{
-                border: theme === "light"
-                    ? `1px solid ${accentColor}B3`
-                    : `1px solid ${accentColor}66`,
-                boxShadow: theme === "light"
-                    ? `0 4px 10px rgba(0, 0, 0, 0.01), 0 10px 24px rgba(0, 0, 0, 0.03), 0 20px 38px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 0 8px ${glowColor}0D`
-                    : `0 4px 12px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 10px ${glowColor}33, inset 0 0 6px ${glowColor}20, inset 0 1px 0 rgba(255, 255, 255, 0.04)`
+                border: borderStyle,
+                boxShadow: boxShadowStyle
             }}
         >
             {/* Soft animated ambient background gradient */}
@@ -37,75 +68,29 @@ function HeroCard({ category, onSelect, theme }) {
                     background: `radial-gradient(circle at 50% 50%, ${accentColor}1A 0%, transparent 70%)`
                 }}
                 animate={{
-                    opacity: [0.35, 0.65, 0.35],
-                    scale: [0.95, 1.08, 0.95]
+                    opacity: gradientOpacity,
+                    scale: gradientScale
                 }}
                 transition={{
                     repeat: Infinity,
-                    duration: 5,
+                    duration: durationTime,
                     ease: "easeInOut"
                 }}
             />
 
-            <div className="relative z-10 flex flex-col items-center justify-center gap-2.5">
-                <div style={{ width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", filter: theme === "light" ? `drop-shadow(0 1.5px 2.5px rgba(0, 0, 0, 0.16))` : `drop-shadow(0 0 8px ${glowColor}66)` }}>
-                    {category.Icon && <category.Icon size={32} strokeWidth={2.2} style={{ color: accentColor }} />}
+            <div className={`relative z-10 flex flex-col items-center justify-center ${gapClass}`}>
+                <div style={{
+                    width: iconContainerSize,
+                    height: iconContainerSize,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    filter: shadowFilter
+                }}>
+                    {category.Icon && <category.Icon size={iconSize} strokeWidth={2.2} style={{ color: accentColor }} />}
                 </div>
-                <div className="text-[20px] font-black tracking-tight text-white">
-                    {category.key === "grass" ? "Touch Grass" : category.label}
-                </div>
-            </div>
-        </motion.button>
-    );
-}
-
-function StandardCard({ category, onSelect, theme }) {
-    if (!category) return null;
-    const accentColor = category.accent;
-    const glowColor = category.glow || category.accent;
-    return (
-        <motion.button
-            data-testid={`category-${category.key}`}
-            onClick={() => {
-                haptics.select();
-                onSelect(category);
-            }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            transition={cardSpring}
-            className="group relative flex h-[115px] w-full flex-col items-center justify-center overflow-hidden rounded-2xl tg-glass tg-no-select"
-            style={{
-                border: theme === "light"
-                    ? `1px solid ${accentColor}A6`
-                    : `1px solid ${accentColor}59`,
-                boxShadow: theme === "light"
-                    ? `0 4px 8px rgba(0, 0, 0, 0.01), 0 8px 16px rgba(0, 0, 0, 0.02), 0 16px 28px rgba(0, 0, 0, 0.03), inset 0 1px 1px rgba(255, 255, 255, 0.7), 0 0 6px ${glowColor}08`
-                    : `0 4px 10px rgba(0, 0, 0, 0.25), 0 12px 24px rgba(0, 0, 0, 0.35), 0 0 8px ${glowColor}22, inset 0 0 4px ${glowColor}15, inset 0 1px 0 rgba(255, 255, 255, 0.03)`
-            }}
-        >
-            {/* Soft animated ambient background gradient */}
-            <motion.div
-                className="absolute inset-0 z-0 pointer-events-none"
-                style={{
-                    background: `radial-gradient(circle at 50% 50%, ${accentColor}1A 0%, transparent 70%)`
-                }}
-                animate={{
-                    opacity: [0.3, 0.6, 0.3],
-                    scale: [0.92, 1.06, 0.92]
-                }}
-                transition={{
-                    repeat: Infinity,
-                    duration: 5.5,
-                    ease: "easeInOut"
-                }}
-            />
-
-            <div className="relative z-10 flex flex-col items-center justify-center gap-2">
-                <div style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", filter: theme === "light" ? `drop-shadow(0 1px 2px rgba(0, 0, 0, 0.14))` : `drop-shadow(0 0 6px ${glowColor}66)` }}>
-                    {category.Icon && <category.Icon size={24} strokeWidth={2.2} style={{ color: accentColor }} />}
-                </div>
-                <div className="text-[13px] font-extrabold tracking-tight text-white">
-                    {category.label}
+                <div className={`${textClass} tracking-tight text-white`}>
+                    {category.key === "grass" && isHero ? "Touch Grass" : category.label}
                 </div>
             </div>
         </motion.button>
@@ -189,15 +174,16 @@ export default function HomeScreen({ onSelectCategory }) {
                 className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 pb-8 max-w-[400px] mx-auto w-full mt-2"
             >
                 <div className="w-full h-[160px] shrink-0">
-                    <HeroCard category={grass} onSelect={onSelectCategory} theme={theme} />
+                    <CategoryCard category={grass} onSelect={onSelectCategory} theme={theme} variant="hero" />
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-0">
                     {rest.map((cat) => (
-                        <StandardCard
+                        <CategoryCard
                             key={cat.key}
                             category={cat}
                             onSelect={onSelectCategory}
                             theme={theme}
+                            variant="standard"
                         />
                     ))}
                 </div>

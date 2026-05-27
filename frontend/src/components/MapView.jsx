@@ -72,6 +72,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
     const destMarkerRef = useRef(null);
 
     const lastFetchRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     const [route, setRoute] = useState(null);
     const [routeLoading, setRouteLoading] = useState(false);
@@ -212,6 +213,13 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         let animationFrameId;
         let mapInstance;
         let resizeObserver;
+        let t1;
+        let t2;
+        const handleResize = () => {
+            try {
+                mapInstance?.resize();
+            } catch { }
+        };
 
         const initializeMap = () => {
             if (!containerRef.current || mapRef.current) return;
@@ -329,17 +337,15 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     mapInstance.resize();
                 });
 
-                setTimeout(() => {
+                t1 = setTimeout(() => {
                     mapInstance?.resize();
                 }, 500);
 
-                setTimeout(() => {
+                t2 = setTimeout(() => {
                     mapInstance?.resize();
                 }, 1200);
 
-                window.addEventListener("resize", () => {
-                    mapInstance?.resize();
-                });
+                window.addEventListener("resize", handleResize);
             });
 
             mapRef.current = mapInstance;
@@ -362,6 +368,9 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         return () => {
             if (animationFrameId) cancelAnimationFrame(animationFrameId);
             if (resizeObserver) resizeObserver.disconnect();
+            if (t1) clearTimeout(t1);
+            if (t2) clearTimeout(t2);
+            window.removeEventListener("resize", handleResize);
 
             userMarkerRef.current?.remove();
             destMarkerRef.current?.remove();
@@ -556,6 +565,10 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             setRoute(null);
             setRouteError(null);
             setCurrentStepIdx(0);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
         }
 
         const updatedLast =
@@ -593,7 +606,11 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             setRouteLoading(true);
         }
 
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
         const ac = new AbortController();
+        abortControllerRef.current = ac;
 
         fetchRoute({
             from: userLocation,
@@ -602,6 +619,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             signal: ac.signal,
         })
             .then((r) => {
+                if (ac.signal.aborted) return;
                 if (!r) {
                     if (firstFetch) {
                         setRouteError(
@@ -628,11 +646,12 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     destLng: destination.lng,
                     profile: travelMode,
                 };
+                if (abortControllerRef.current === ac) {
+                    abortControllerRef.current = null;
+                }
             })
             .catch((e) => {
-                if (
-                    e?.name === "AbortError"
-                ) {
+                if (ac.signal.aborted || e?.name === "AbortError") {
                     return;
                 }
 
@@ -642,14 +661,15 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                         "Route error"
                     );
                 }
+                if (abortControllerRef.current === ac) {
+                    abortControllerRef.current = null;
+                }
             })
             .finally(() => {
                 if (firstFetch) {
                     setRouteLoading(false);
                 }
             });
-
-        return () => ac.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         userLocation?.lat,
@@ -659,6 +679,14 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         travelMode,
         tokenAvailable,
     ]);
+
+    useEffect(() => {
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (

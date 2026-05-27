@@ -15,9 +15,20 @@ export async function checkAppVersion() {
         // Get the last known version from localStorage
         const storedVersion = localStorage.getItem("app-version");
 
-        // If it's the first time running (no stored version), save the current app version and return
+        // If it's the first time running (no stored version), initialize it
         if (!storedVersion) {
-            localStorage.setItem("app-version", APP_VERSION);
+            localStorage.setItem("app-version", deployedVersion);
+            // If the running bundle is outdated compared to the server deployment, reload immediately
+            if (deployedVersion !== APP_VERSION) {
+                console.log(`[VersionCheck] Outdated running code on first run: ${APP_VERSION} -> ${deployedVersion}. Reloading...`);
+                await migrateDB(APP_VERSION, deployedVersion);
+                await unregisterServiceWorker();
+                if (window.caches) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map((key) => caches.delete(key)));
+                }
+                window.location.reload(true);
+            }
             return;
         }
 

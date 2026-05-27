@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import "@/index.css";
 import "mapbox-gl/dist/mapbox-gl.css"; // ✅ Mapbox CSS imported globally here
 import App from "@/App";
-import { unregister as unregisterSW } from "@/serviceWorkerRegistration";
+import { register as registerSW } from "@/serviceWorkerRegistration";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
@@ -12,4 +12,4 @@ root.render(
   </React.StrictMode>,
 );
 
-unregisterSW();
+registerSW();
