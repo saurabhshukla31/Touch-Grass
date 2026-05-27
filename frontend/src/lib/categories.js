@@ -145,22 +145,16 @@ export const CATEGORIES = [
     Icon: Gem,
   },
   {
-    key: "mandir",
-    label: "Mandir",
-    searchCanonical: "place_of_worship",
-    searchAlternatives: ["hindu_temple", "temple", "shrine", "place_of_worship"],
-    searchQuery: "Mandir",
-    searchQueryCategory: "place_of_worship",
-    excludeKeywords: [
-      "mosque", "masjid", "islamic", "church", "cathedral",
-      "synagogue", "chapel", "gurudwara", "gurdwara",
-      "buddhist", "monastery", "islam", "muslim", "christian",
-      "peace foundation"
-    ],
-    accent: "#ff9933",
-    accentSoft: "radial-gradient(ellipse at 60% 30%, #3e1b0488 0%, #0a0a0a 70%)",
+    key: "landmark",
+    label: "Landmark",
+    searchCanonical: "tourist_attraction",
+    searchAlternatives: ["monument", "historic_site", "museum", "castle"],
+    searchQuery: "Taj Mahal",
+    searchQueryCategory: "tourist_attraction",
+    accent: "#f59e0b",
+    accentSoft: "radial-gradient(ellipse at 60% 30%, #1c150088 0%, #0a0a0a 70%)",
     iconKey: "landmark",
-    glow: "#f97316",
+    glow: "#d97706",
     Icon: Landmark,
   },
   {
@@ -334,7 +328,7 @@ export const MODES = {
   explore: {
     label: "Explore Mode",
     mainKey: "grass",
-    gridKeys: ["hidden_gems", "viewpoint", "street_food", "mandir"]
+    gridKeys: ["hidden_gems", "viewpoint", "street_food", "landmark"]
   },
   date: {
     label: "Date Mode",
