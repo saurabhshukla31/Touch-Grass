@@ -94,6 +94,31 @@ body {
   will-change: transform;
 }
 
+/* Custom super-translucent iOS 26 style glass for map elements */
+.tg-map-glass {
+  background: rgba(10, 10, 12, 0.25) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(45px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(45px) saturate(200%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 40px rgba(0, 0, 0, 0.3) !important;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
+.tg-map-glass-strong {
+  background: rgba(10, 10, 12, 0.32) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(50px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(220%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 48px rgba(0, 0, 0, 0.4) !important;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
 .tg-grass-glow {
   background:
     radial-gradient(
@@ -350,6 +375,26 @@ button,
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.4),
     0 12px 40px rgba(0, 0, 0, 0.02) !important;
+}
+
+.light .tg-map-glass {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(45px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(45px) saturate(180%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 8px 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+.light .tg-map-glass-strong {
+  background: rgba(255, 255, 255, 0.42) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  backdrop-filter: blur(50px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(50px) saturate(190%) !important;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 12px 36px rgba(0, 0, 0, 0.03) !important;
 }
 
 /* Text overrides using Apple Label Color #1c1c1e */

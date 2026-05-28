@@ -831,7 +831,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
 
         const newUserMessage = { role: "user", content: text };
         const updatedMessages = [...chatMessages, newUserMessage];
-        
+
         saveChatMessages(updatedMessages);
         setChatInput("");
         await processChatMessage(updatedMessages);
@@ -844,7 +844,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
 
         const newUserMessage = { role: "user", content: text };
         const updatedMessages = [...chatMessages, newUserMessage];
-        
+
         saveChatMessages(updatedMessages);
         await processChatMessage(updatedMessages);
     };
@@ -979,7 +979,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                 <div className="relative z-10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                            <motion.div 
+                            <motion.div
                                 whileHover={{ scale: 1.1, rotate: [0, -10, 10, 0] }}
                                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/25 text-sm shadow-[0_0_12px_rgba(16,185,129,0.2)]"
                             >
@@ -1115,11 +1115,10 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                     {/* Chat Messages Area */}
                                     <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1 mb-3 no-scrollbar">
                                         {chatMessages.length === 0 ? (
-                                            <div className={`text-[11px] py-3 text-center rounded-xl border ${
-                                                theme === "light"
+                                            <div className={`text-[11px] py-3 text-center rounded-xl border ${theme === "light"
                                                     ? "text-black/45 bg-black/[0.02] border-black/[0.04]"
                                                     : "text-white/45 bg-white/[0.02] border-white/[0.04]"
-                                            }`}>
+                                                }`}>
                                                 Ask me anything about your stats or get advice on where to explore!
                                             </div>
                                         ) : (
@@ -1129,15 +1128,14 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                                 return (
                                                     <div
                                                         key={idx}
-                                                        className={`flex flex-col max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-normal ${
-                                                            !isAssistant
+                                                        className={`flex flex-col max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-normal ${!isAssistant
                                                                 ? (theme === "light"
                                                                     ? "self-end bg-black/[0.05] text-black/85 rounded-br-none border border-black/[0.08]"
                                                                     : "self-end bg-white/[0.06] text-white/90 rounded-br-none border border-white/[0.08]")
                                                                 : (theme === "light"
                                                                     ? "self-start bg-emerald-500/10 text-emerald-800 rounded-bl-none border border-emerald-500/15"
                                                                     : "self-start bg-emerald-500/10 text-emerald-200 rounded-bl-none border border-emerald-500/15")
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {isAssistant && isNewest ? (
                                                             <TypewriterText text={msg.content} />
@@ -1150,11 +1148,10 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                         )}
 
                                         {chatLoading && (
-                                            <div className={`self-start flex items-center gap-1 border rounded-2xl rounded-bl-none px-3 py-2.5 text-xs ${
-                                                theme === "light"
+                                            <div className={`self-start flex items-center gap-1 border rounded-2xl rounded-bl-none px-3 py-2.5 text-xs ${theme === "light"
                                                     ? "bg-emerald-500/10 border-emerald-500/15 text-emerald-700/80"
                                                     : "bg-emerald-500/10 border-emerald-500/15 text-emerald-400/80"
-                                            }`}>
+                                                }`}>
                                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -1210,11 +1207,10 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                             }}
                                             placeholder="Ask Roamie..."
                                             disabled={chatLoading}
-                                            className={`flex-1 h-9 rounded-xl px-3 text-base md:text-xs focus:outline-none focus:border-emerald-500/50 transition-all disabled:opacity-50 ${
-                                                theme === "light"
+                                            className={`flex-1 h-9 rounded-xl px-3 text-base md:text-xs focus:outline-none focus:border-emerald-500/50 transition-all disabled:opacity-50 ${theme === "light"
                                                     ? "bg-black/[0.04] border-black/[0.08] text-black placeholder-black/40"
                                                     : "bg-white/[0.04] border-white/[0.08] text-white placeholder-white/30"
-                                            }`}
+                                                }`}
                                         />
                                         <button
                                             type="submit"
@@ -1426,9 +1422,8 @@ export default function InsightsView() {
     return (
         <div
             data-testid="insights-view"
-            className={`relative w-full px-5 pt-safe transition-[padding-bottom] duration-300 ease-out tg-no-select ${
-                isInputFocused ? "pb-[420px]" : "pb-40"
-            }`}
+            className={`relative w-full px-5 pt-safe transition-[padding-bottom] duration-300 ease-out tg-no-select ${isInputFocused ? "pb-[420px]" : "pb-40"
+                }`}
         >
             <div className="tg-ambient" />
             <motion.header

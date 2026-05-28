@@ -19,6 +19,7 @@ import {
     X,
     Navigation2,
     LocateFixed,
+    Search,
 } from "lucide-react";
 
 import { useApp } from "@/lib/AppState";
@@ -1071,16 +1072,27 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     isolation: "isolate",
                 }}
             />
-
-            {!navStarted && destination && (
-                <div className="absolute left-0 right-0 top-0 z-20 flex justify-center pt-4">
-                    <DestinationPill
-                        category={selectedCategory}
-                        destination={destination}
-                        distance={distance}
-                        units={units}
-                        anchor="top"
-                    />
+            {!navStarted && (
+                <div
+                    className="absolute left-4 right-4 z-30"
+                    style={{
+                        top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                    }}
+                >
+                    <div className="tg-map-glass flex h-12 w-full items-center gap-3 rounded-full px-4">
+                        <Search
+                            size={18}
+                            className="text-white/40 shrink-0"
+                            strokeWidth={2}
+                        />
+                        <input
+                            type="text"
+                            readOnly
+                            value={destination ? destination.name : ""}
+                            placeholder="Search here..."
+                            className="flex-1 bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:font-medium placeholder:text-white/30"
+                        />
+                    </div>
                 </div>
             )}
 
@@ -1101,21 +1113,13 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 opacity: 0,
                                 y: -16,
                             }}
-                            className={`absolute left-4 right-4 z-30 rounded-2xl p-4 backdrop-blur-xl shadow-2xl border transition-colors duration-300 ${
-                                theme === "light"
-                                    ? "bg-[#d1d1d6]/95 border-black/20 shadow-black/5"
-                                    : "bg-black/65 border-white/10"
-                            }`}
+                            className="tg-map-glass absolute left-4 right-4 z-30 rounded-2xl p-4"
                             style={{
                                 top: "calc(env(safe-area-inset-top, 0px) + 16px)",
                             }}
                         >
                             <div className="flex gap-3 items-center">
-                                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 ${
-                                    theme === "light"
-                                        ? "bg-emerald-500/15 text-emerald-600"
-                                        : "bg-emerald-500/10 text-emerald-300"
-                                }`}>
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
                                     <Navigation2
                                         size={16}
                                         style={{ transform: "rotate(45deg)" }}
@@ -1123,18 +1127,14 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 </div>
 
                                 <div>
-                                    <div className={`text-xs font-semibold leading-tight transition-colors duration-300 ${
-                                        theme === "light" ? "text-black" : "text-white"
-                                    }`}>
+                                    <div className="text-xs font-semibold leading-tight text-white">
                                         {nextStep
                                             .maneuver
                                             ?.instruction ??
                                             "Continue"}
                                     </div>
 
-                                    <div className={`mt-0.5 text-[10px] transition-colors duration-300 ${
-                                        theme === "light" ? "text-black/50" : "text-white/60"
-                                    }`}>
+                                    <div className="mt-0.5 text-[10px] text-white/60">
                                         {formatDistance(
                                             nextStep.distance,
                                             units
@@ -1160,11 +1160,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                         <button
                             data-testid="map-recenter"
                             onClick={handleRecenter}
-                            className={`flex h-12 w-12 items-center justify-center rounded-full shadow-2xl backdrop-blur-xl active:scale-95 transition-transform border ${
-                                theme === "light"
-                                    ? "bg-white/90 text-black border-black/10 shadow-black/5"
-                                    : "bg-[#111218]/90 text-white border-white/10"
-                            }`}
+                            className="tg-map-glass flex h-12 w-12 items-center justify-center rounded-full text-white active:scale-95 transition-transform"
                             aria-label="Recenter"
                         >
                             <LocateFixed size={18} strokeWidth={2} />
@@ -1178,7 +1174,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                             bottom: "calc(env(safe-area-inset-bottom, 0px) + 98px)",
                         }}
                     >
-                        <div className="w-full max-w-sm p-5 rounded-3xl tg-glass text-center">
+                        <div className="tg-map-glass w-full max-w-sm p-5 rounded-3xl text-center">
                             <h3 className="text-base font-black tracking-tight leading-snug text-white">
                                 Go to the <span className="text-emerald-500 font-black">Home Tab</span>
                             </h3>
@@ -1200,13 +1196,14 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                         initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ type: "spring", stiffness: 280, damping: 28 }}
-                        className="rounded-[22px] p-4 tg-glass-strong"
+                        className="rounded-[22px] p-4 tg-map-glass-strong"
                         data-testid="map-info-card"
                     >
+
                         <div className="flex items-baseline justify-between">
                             <div>
                                 <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                                    {selectedCategory?.label || ""}
+                                    Distance
                                 </div>
                                 <div
                                     data-testid="map-route-distance"

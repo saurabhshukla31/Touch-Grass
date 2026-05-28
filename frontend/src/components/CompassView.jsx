@@ -153,7 +153,7 @@ export default function CompassView({ onCancel }) {
             let rIn = 142; // minor tick length = 4px
             let thickness = 1;
             let opacity = theme === "light" ? 0.15 : 0.2;
-            
+
             if (deg % 90 === 0) {
                 rIn = 130; // major tick length = 16px
                 thickness = 2.2;
@@ -167,16 +167,16 @@ export default function CompassView({ onCancel }) {
                 thickness = 1.2;
                 opacity = theme === "light" ? 0.5 : 0.6;
             }
-            
+
             const rad = (deg * Math.PI) / 180;
             const sin = Math.sin(rad);
             const cos = Math.cos(rad);
-            
+
             const x1 = 160 + rIn * sin;
             const y1 = 160 - rIn * cos;
             const x2 = 160 + rOut * sin;
             const y2 = 160 - rOut * cos;
-            
+
             lines.push({
                 deg,
                 x1,
@@ -215,13 +215,14 @@ export default function CompassView({ onCancel }) {
 
             {/* Destination pill, anchored top */}
             {destination && (
-                <div className="absolute top-[env(safe-area-inset-top)] mt-8 left-0 right-0 z-20 flex w-full justify-center">
+                <div className="absolute top-[env(safe-area-inset-top)] mt-3 left-0 right-0 z-20 flex w-full justify-center">
                     <DestinationPill
                         category={selectedCategory}
                         destination={destination}
                         distance={distance}
                         units={units}
                         anchor="top"
+                        alwaysShowPlaceName={true}
                     />
                 </div>
             )}
@@ -239,7 +240,7 @@ export default function CompassView({ onCancel }) {
                                 : "radial-gradient(circle, rgba(var(--mode-accent-rgb), 0.12) 0%, transparent 70%)",
                         }}
                     />
-                    
+
                     {/* Beautifully styled dial plate backing */}
                     <div
                         className="absolute rounded-full transition-all duration-300"
@@ -452,7 +453,7 @@ export default function CompassView({ onCancel }) {
                                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
                             </filter>
                         </defs>
-                        
+
                         {/* Outer bezel ring */}
                         <circle
                             cx="160"
@@ -462,7 +463,7 @@ export default function CompassView({ onCancel }) {
                             stroke={theme === "light" ? "rgba(0, 0, 0, 0.15)" : "rgba(255, 255, 255, 0.08)"}
                             strokeWidth="1.5"
                         />
-                        
+
                         {/* Middle bezel ring */}
                         <circle
                             cx="160"
@@ -472,7 +473,7 @@ export default function CompassView({ onCancel }) {
                             stroke={theme === "light" ? "rgba(0, 0, 0, 0.035)" : "rgba(255, 255, 255, 0.05)"}
                             strokeWidth="1"
                         />
-                        
+
                         {/* Inner bezel ring */}
                         <circle
                             cx="160"
@@ -482,14 +483,14 @@ export default function CompassView({ onCancel }) {
                             stroke={theme === "light" ? "rgba(0, 0, 0, 0.025)" : "rgba(255, 255, 255, 0.04)"}
                             strokeWidth="1"
                         />
-                        
+
                         {/* Mode Arrowhead Pointer at the top (12 o'clock) pointing down */}
                         <polygon
                             points="160,16 153.5,6 166.5,6"
                             fill="var(--mode-accent)"
                             filter={theme === "light" ? "none" : "url(#cyan-glow)"}
                         />
-                        
+
                         {/* Mode axis indicators at 3, 6, 9 o'clock */}
                         {/* W (9 o'clock) */}
                         <line
@@ -589,29 +590,25 @@ export default function CompassView({ onCancel }) {
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`w-full max-w-sm rounded-3xl p-5 shadow-2xl border transition-colors duration-300 ${
-                            theme === "light"
-                                ? "bg-[#dcdce2] border-black/10 shadow-black/5"
-                                : "bg-[#08080a] border-white/10"
-                        }`}
+                        className={`w-full max-w-sm rounded-3xl p-5 shadow-2xl border transition-colors duration-300 ${theme === "light"
+                            ? "bg-[#dcdce2] border-black/10 shadow-black/5"
+                            : "bg-[#08080a] border-white/10"
+                            }`}
                     >
                         <div className="flex items-start gap-3">
-                            <div className={`mt-1 flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-300 ${
-                                theme === "light"
-                                    ? "bg-emerald-500/15 text-emerald-600"
-                                    : "bg-emerald-500/10 text-emerald-300"
-                            }`}>
+                            <div className={`mt-1 flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-300 ${theme === "light"
+                                ? "bg-emerald-500/15 text-emerald-600"
+                                : "bg-emerald-500/10 text-emerald-300"
+                                }`}>
                                 <Navigation2 size={16} />
                             </div>
                             <div className="flex-1">
-                                <div className={`text-sm font-semibold transition-colors duration-300 ${
-                                    theme === "light" ? "text-black" : "text-white"
-                                }`}>
+                                <div className={`text-sm font-semibold transition-colors duration-300 ${theme === "light" ? "text-black" : "text-white"
+                                    }`}>
                                     Use device compass?
                                 </div>
-                                <div className={`mt-1 text-xs leading-relaxed transition-colors duration-300 ${
-                                    theme === "light" ? "text-black/55" : "text-white/55"
-                                }`}>
+                                <div className={`mt-1 text-xs leading-relaxed transition-colors duration-300 ${theme === "light" ? "text-black/55" : "text-white/55"
+                                    }`}>
                                     The needle points toward your destination
                                     using your phone's magnetometer.
                                 </div>
@@ -625,11 +622,10 @@ export default function CompassView({ onCancel }) {
                                     await requestOrientation();
                                     setShowOrientPrompt(false);
                                 }}
-                                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold active:scale-[0.98] transition-colors duration-300 ${
-                                    theme === "light"
-                                        ? "bg-emerald-600 text-white"
-                                        : "bg-emerald-500/90 text-black"
-                                }`}
+                                className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold active:scale-[0.98] transition-colors duration-300 ${theme === "light"
+                                    ? "bg-emerald-600 text-white"
+                                    : "bg-emerald-500/90 text-black"
+                                    }`}
                             >
                                 Allow
                             </button>
@@ -639,11 +635,10 @@ export default function CompassView({ onCancel }) {
                                     haptics.tap();
                                     setShowOrientPrompt(false);
                                 }}
-                                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-300 ${
-                                    theme === "light"
-                                        ? "text-black/55"
-                                        : "text-white/55"
-                                }`}
+                                className={`rounded-full px-4 py-2.5 text-sm font-medium transition-colors duration-300 ${theme === "light"
+                                    ? "text-black/55"
+                                    : "text-white/55"
+                                    }`}
                             >
                                 Not now
                             </button>

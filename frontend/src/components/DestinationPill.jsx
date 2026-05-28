@@ -12,9 +12,10 @@ export default function DestinationPill({
     units = "metric",
     anchor = "top",
     className = "",
+    alwaysShowPlaceName = false,
 }) {
     const { pillOpen, togglePill } = useApp();
-    const open = pillOpen;
+    const isOpen = alwaysShowPlaceName ? true : pillOpen;
     if (!category) return null;
 
     return (
@@ -25,21 +26,22 @@ export default function DestinationPill({
         >
             <motion.button
                 data-testid={
-                    open ? "destination-pill-expanded" : "destination-pill-collapsed"
+                    isOpen ? "destination-pill-expanded" : "destination-pill-collapsed"
                 }
                 onClick={() => {
+                    if (alwaysShowPlaceName) return;
                     haptics.tap();
                     togglePill();
                 }}
                 layout
                 transition={{ type: "spring", stiffness: 360, damping: 28 }}
                 className={
-                    open
+                    isOpen
                         ? "flex max-w-[78vw] items-center rounded-full px-4 py-2 text-left tg-glass-strong w-fit mx-auto"
                         : "flex items-center justify-center rounded-full px-3 py-1 tg-glass w-fit mx-auto"
                 }
             >
-                {open ? (
+                {isOpen ? (
                     <motion.span
                         key="open-text"
                         initial={{ opacity: 0 }}
@@ -70,7 +72,7 @@ export default function DestinationPill({
                     </motion.span>
                 )}
 
-                {open && (
+                {isOpen && !alwaysShowPlaceName && (
                     <ChevronDown
                         size={14}
                         className="ml-1 shrink-0 text-white/30"
