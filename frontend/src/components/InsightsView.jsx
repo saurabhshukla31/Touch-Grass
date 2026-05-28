@@ -28,6 +28,8 @@ import {
     Loader2,
 } from "lucide-react";
 import { listSessions, clearAllData } from "@/lib/db";
+import { APP_VERSION } from "@/lib/version";
+import { unregister as unregisterServiceWorker } from "@/serviceWorkerRegistration";
 import {
     formatDistance,
     formatDuration,
@@ -1260,9 +1262,51 @@ export default function InsightsView() {
     const handleWipe = async () => {
         setWiping(true);
         try {
+            // 1. Clear IndexedDB data
             await clearAllData();
-            haptics.success();
+
+            // 2. Clear localStorage
+            localStorage.clear();
+
+            // 3. Reset React state and trigger haptics
             setSessions([]);
+            haptics.success();
+
+            // 4. Fetch the latest deployed version and check for a mismatch
+            let versionMatches = true;
+            let deployedVersion = APP_VERSION;
+            try {
+                const res = await fetch(`/version.json?t=${Date.now()}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    deployedVersion = data.version || APP_VERSION;
+                    if (deployedVersion !== APP_VERSION) {
+                        versionMatches = false;
+                    }
+                }
+            } catch (err) {
+                console.error("[VersionCheck] Failed to check app version during wipe:", err);
+            }
+
+            // Restore the app-version to localStorage so settings display works
+            localStorage.setItem("app-version", deployedVersion);
+
+            // 5. If version doesn't match, clear service workers/caches and reload the site
+            if (!versionMatches) {
+                console.log("[VersionCheck] Version mismatch detected. Clearing caches and reloading...");
+                await unregisterServiceWorker();
+                if (window.caches) {
+                    try {
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map((key) => caches.delete(key)));
+                    } catch (e) {
+                        console.error("[VersionCheck] Failed to clear caches:", e);
+                    }
+                }
+                window.location.reload(true);
+            }
+        } catch (err) {
+            console.error("Error wiping data:", err);
         } finally {
             setWiping(false);
             setConfirming(false);

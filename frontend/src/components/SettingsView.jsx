@@ -150,6 +150,8 @@ export default function SettingsView() {
         setTheme,
     } = useApp();
 
+    const displayVersion = localStorage.getItem("app-version") || APP_VERSION;
+
     return (
         <div
             data-testid="settings-view"
@@ -164,7 +166,7 @@ export default function SettingsView() {
             >
                 <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/50 flex items-center justify-between">
                     <span>Settings</span>
-                    <span>V.{APP_VERSION}</span>
+                    <span>V.{displayVersion}</span>
                 </div>
                 <h1 className="mt-2 text-3xl font-black tracking-tight text-white">
                     How you Roam Out.
