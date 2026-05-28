@@ -644,10 +644,6 @@ function Shell() {
 
 function App() {
   const isMobile = useIsMobile();
-  // Remove the platform "Made with Emergent" badge — it overlaps our floating
-  // tab bar and clashes with the calm aesthetic. Uses a small MutationObserver
-  // so the badge stays gone even if injected after mount. Also check the deployed
-  // app version on startup to clear old caches/service worker and migrate if needed.
   useEffect(() => {
     checkAppVersion();
 
