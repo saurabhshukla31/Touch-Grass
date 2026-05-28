@@ -1245,7 +1245,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                                 }
                             }}
                             placeholder="Search here"
-                            className="flex-1 bg-transparent text-base md:text-[13px] font-semibold focus:outline-none text-white placeholder:font-medium placeholder:text-white/25 caret-emerald-400"
+                            className="flex-1 bg-transparent font-semibold focus:outline-none text-white placeholder:font-medium placeholder:text-white/25 caret-emerald-400"
+                            style={{ fontSize: "16px" }}
                             autoComplete="off"
                             autoCorrect="off"
                             spellCheck={false}
