@@ -6,7 +6,8 @@ A premium, mobile-first Progressive Web App (PWA) designed to reconnect users wi
 
 - **Compass navigation** — magnetometer-driven compass rose showing live bearing, distance, and ETA
 - **Custom Map view** — dark Mapbox GL JS layer showing your location, destination, course-up navigation, and traveled path
-- **Real-time POI resolution** — automatic lookup of nearest cafés, parks, gyms, essentials, or randomized mystery locations using Mapbox Search Box API
+- **Real-time POI resolution & High-Precision Proximity Searches** — automatic lookup of nearest landmarks, viewpoints, markets, cafés, forests, karaoke lounges, salons, or pharmacies using Mapbox Search Box API. Category setups feature explicit query overrides (e.g. searching for `"football turf"` for Turf, or `"karaoke"` inside Bars for Karaoke) to guarantee absolute POI accuracy near the user.
+- **Structured PWA Modes** — supports five tailored category modes in uniform, touch-friendly 2x3 grids (Explore: Landmark, Viewpoint, Market, Street Food, Hidden Gems, Museum; Date: Café, Bookstore, Scenic Spot, Dessert, Art Gallery, Fine Dining; Escape: Quiet Place, Waterfront, Sunset Point, Nature Spot, Trail, Forest; Social: Gym, Turf, Gaming Café, Karaoke, Bar, Club; Essentials: ATM, Fuel, Convenience Store, Pharmacy, Salon, Hospital).
 - **Insights & stats** — 30-day activity heatmap, session streak tracker, total distance, and transportation mode breakdowns. The overview stats card grid is structured into a clean, custom order (Sessions, Distance, Time, Places, Streak, Avg Session).
 - **Throttled Weather Integration** — Location-aware weather fetching with coordinate/temporal thresholds to prevent rate limits, frozen dynamically while viewing the stats screen to prevent distracting layout shifts.
 - **Dynamic travel profiles** — customizable routing presets for walking, cycling, or driving

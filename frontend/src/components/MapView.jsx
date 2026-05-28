@@ -20,6 +20,8 @@ import {
     Navigation2,
     LocateFixed,
     Search,
+    MapPin,
+    Loader2,
 } from "lucide-react";
 
 import { useApp } from "@/lib/AppState";
@@ -27,9 +29,12 @@ import {
     getMapboxToken,
     hasMapboxToken,
     fetchRoute,
+    getSearchSuggestions,
+    retrieveSuggestion,
 } from "@/lib/mapbox";
 
 import DestinationPill from "@/components/DestinationPill";
+import { MODES, getCategoryByKey } from "@/lib/categories";
 
 import {
     formatDistance,
@@ -64,6 +69,7 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
         mapViewMode,
         navViewMode,
         theme,
+        appMode,
     } = useApp();
 
     const containerRef = useRef(null);
@@ -83,6 +89,43 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
 
     const [currentStepIdx, setCurrentStepIdx] = useState(0);
 
+    const [searchQuery, setSearchQuery] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+
+    useEffect(() => {
+        if (!searchQuery.trim()) {
+            setSuggestions([]);
+            setSuggestionsLoading(false);
+            return;
+        }
+
+        setSuggestionsLoading(true);
+        const controller = new AbortController();
+        const delayDebounce = setTimeout(async () => {
+            try {
+                const results = await getSearchSuggestions(
+                    searchQuery,
+                    userLocation,
+                    controller.signal
+                );
+                setSuggestions(results);
+            } catch (err) {
+                if (err && err.name !== "AbortError") {
+                    console.error("[Search] Suggest failed", err);
+                }
+            } finally {
+                setSuggestionsLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            clearTimeout(delayDebounce);
+            controller.abort();
+        };
+    }, [searchQuery, userLocation]);
+
     const tokenAvailable = hasMapboxToken();
 
     const userLocationRef = useRef(userLocation);
@@ -95,6 +138,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
     const latestHeadingRef = useRef(0);
     const lastCameraUpdateRef = useRef(0);
     const cameraThrottlerRef = useRef(null);
+    const lastUpdateHeadingRef = useRef(0);
+    const lastUpdateLocRef = useRef({ lat: 0, lng: 0 });
 
     useEffect(() => {
         userLocationRef.current = userLocation;
@@ -132,6 +177,17 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             const headingVal = latestHeadingRef.current;
             if (!loc) return;
 
+            if (!force) {
+                const headingDiff = Math.abs(headingVal - lastUpdateHeadingRef.current);
+                const latDiff = Math.abs(loc.lat - lastUpdateLocRef.current.lat);
+                const lngDiff = Math.abs(loc.lng - lastUpdateLocRef.current.lng);
+
+                if (headingDiff < 3.5 && latDiff < 0.000015 && lngDiff < 0.000015) {
+                    cameraThrottlerRef.current = null;
+                    return;
+                }
+            }
+
             const targetZoom = travelModeRef.current === "cycling" ? 17.5 : (travelModeRef.current === "driving" ? 16 : 18.5);
 
             map.easeTo({
@@ -144,6 +200,8 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                 easing: (t) => t
             });
 
+            lastUpdateHeadingRef.current = headingVal;
+            lastUpdateLocRef.current = { lat: loc.lat, lng: loc.lng };
             lastCameraUpdateRef.current = performance.now();
             cameraThrottlerRef.current = null;
         };
@@ -1034,6 +1092,62 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
             onEnd?.();
         }, [update, onEnd]);
 
+    const handleSelectSuggestion = useCallback(async (suggestion) => {
+        haptics.success();
+        try {
+            // Some results already have coordinates (geocoding/category search),
+            // while suggest-API results need a /retrieve call.
+            let resolved;
+            if (suggestion.needsRetrieve) {
+                resolved = await retrieveSuggestion(suggestion.mapbox_id);
+            } else {
+                resolved = suggestion;
+            }
+            if (!resolved) return;
+
+            const searchCategory = {
+                key: "search",
+                label: "Search",
+                accent: "#3b82f6",
+                accentSoft: "radial-gradient(ellipse at 60% 30%, #0a162888 0%, #0a0a0a 70%)",
+                iconKey: "search",
+                glow: "#2563eb",
+                Icon: Search,
+            };
+
+            update({
+                destination: {
+                    name: resolved.name,
+                    address: resolved.address || resolved.place_formatted || "",
+                    lng: resolved.lng,
+                    lat: resolved.lat,
+                    mapboxId: resolved.mapboxId || resolved.mapbox_id,
+                    confidenceScore: resolved.confidenceScore,
+                    matchWarning: resolved.matchWarning,
+                    categoryKey: "search",
+                    viaRandom: false,
+                },
+                selectedCategory: searchCategory,
+                mode: "active",
+            });
+
+            const map = mapRef.current;
+            if (map && mapReady) {
+                map.easeTo({
+                    center: [resolved.lng, resolved.lat],
+                    zoom: 16,
+                    duration: 800,
+                });
+            }
+
+            setIsSearching(false);
+            setSearchQuery("");
+            setSuggestions([]);
+        } catch (err) {
+            console.error("[Search] Retrieve failed", err);
+        }
+    }, [update, mapReady]);
+
     const handleRecenter = useCallback(() => {
         const map = mapRef.current;
         if (!map || !mapReady || !userLocation) return;
@@ -1072,26 +1186,176 @@ export default function MapView({ onEnd, tracker, plannedDistanceRef }) {
                     isolation: "isolate",
                 }}
             />
+            {/* Search tap-away overlay — always mounted, toggled via opacity+pointer-events to avoid reflow */}
+            <div
+                className="fixed inset-0 z-20"
+                style={{
+                    opacity: isSearching ? 1 : 0,
+                    pointerEvents: isSearching ? "auto" : "none",
+                    transition: "opacity 0.15s ease",
+                }}
+                onClick={() => {
+                    setIsSearching(false);
+                    setSearchQuery("");
+                    setSuggestions([]);
+                }}
+            />
+
             {!navStarted && (
                 <div
                     className="absolute left-4 right-4 z-30"
                     style={{
                         top: "calc(env(safe-area-inset-top, 0px) + 16px)",
+                        willChange: isSearching ? "transform" : "auto",
                     }}
                 >
-                    <div className="tg-map-glass flex h-12 w-full items-center gap-3 rounded-full px-4">
-                        <Search
-                            size={18}
-                            className="text-white/40 shrink-0"
-                            strokeWidth={2}
-                        />
+                    <div
+                        className="tg-map-glass flex h-12 w-full items-center gap-3 rounded-full px-4"
+                        style={{
+                            boxShadow: isSearching ? "0 0 20px rgba(16,185,129,0.08)" : "none",
+                            outline: isSearching ? "1px solid rgba(16,185,129,0.3)" : "1px solid transparent",
+                            transition: "box-shadow 0.3s ease, outline-color 0.3s ease",
+                        }}
+                    >
+                        {suggestionsLoading ? (
+                            <Loader2
+                                size={16}
+                                className="text-emerald-400 animate-spin shrink-0"
+                            />
+                        ) : (
+                            <Search
+                                size={16}
+                                className="shrink-0"
+                                strokeWidth={2}
+                                style={{
+                                    color: isSearching ? "#34d399" : "rgba(255,255,255,0.35)",
+                                    transition: "color 0.2s ease",
+                                }}
+                            />
+                        )}
                         <input
+                            data-testid="map-search-input"
                             type="text"
-                            readOnly
-                            value={destination ? destination.name : ""}
-                            placeholder="Search here..."
-                            className="flex-1 bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:font-medium placeholder:text-white/30"
+                            value={isSearching ? searchQuery : (destination ? destination.name : "")}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => {
+                                if (!isSearching) {
+                                    setIsSearching(true);
+                                    setSearchQuery("");
+                                }
+                            }}
+                            placeholder="Search here"
+                            className="flex-1 bg-transparent text-[13px] font-semibold focus:outline-none text-white placeholder:font-medium placeholder:text-white/25 caret-emerald-400"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck={false}
                         />
+                        {isSearching ? (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    haptics.tap();
+                                    if (searchQuery) {
+                                        setSearchQuery("");
+                                    } else {
+                                        setIsSearching(false);
+                                        setSuggestions([]);
+                                    }
+                                }}
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 active:scale-90 transition-transform duration-150"
+                            >
+                                <X size={11} strokeWidth={2.5} />
+                            </button>
+                        ) : (
+                            destination && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        haptics.tap();
+                                        handleCancel();
+                                    }}
+                                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/50 active:scale-90 transition-transform duration-150"
+                                >
+                                    <X size={11} strokeWidth={2.5} />
+                                </button>
+                            )
+                        )}
+                    </div>
+
+                    {/* Dropdown area — uses simple CSS transitions, no AnimatePresence blocking */}
+                    <div
+                        style={{
+                            opacity: isSearching ? 1 : 0,
+                            transform: isSearching ? "translateY(0)" : "translateY(-4px)",
+                            pointerEvents: isSearching ? "auto" : "none",
+                            transition: "opacity 0.2s ease, transform 0.2s ease",
+                        }}
+                    >
+                        {/* Quick-search category chips */}
+                        {!searchQuery.trim() && suggestions.length === 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                                {(() => {
+                                    const mode = MODES[appMode] || MODES.explore;
+                                    const keys = mode.keys;
+                                    return keys.map((k) => {
+                                        const cat = getCategoryByKey(k);
+                                        if (!cat) return null;
+                                        return (
+                                            <button
+                                                key={cat.key}
+                                                onClick={() => {
+                                                    haptics.tap();
+                                                    setSearchQuery(cat.label);
+                                                }}
+                                                className="tg-map-glass rounded-full px-3 py-1.5 text-[11px] font-semibold text-white/60 active:scale-95 active:text-white/80 transition-transform duration-150"
+                                                style={{ borderColor: cat.accent + '18' }}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        )}
+
+                        {/* Suggestion results */}
+                        {suggestions.length > 0 && (
+                            <div className="tg-map-glass-strong mt-2 max-h-[280px] w-full overflow-y-auto rounded-2xl p-1.5 flex flex-col gap-0.5">
+                                {suggestions.map((item) => (
+                                    <button
+                                        key={item.mapbox_id}
+                                        onClick={() => handleSelectSuggestion(item)}
+                                        className="flex items-center gap-3 w-full px-3 py-2.5 text-left rounded-xl active:bg-white/8 transition-colors duration-100"
+                                    >
+                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/[0.04] text-white/30">
+                                            <MapPin size={14} strokeWidth={2} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <div className="text-[13px] font-bold text-white truncate leading-snug">
+                                                    {item.name}
+                                                </div>
+                                                {item.distanceText && (
+                                                    <span className="text-[10px] font-bold text-emerald-400/80 shrink-0 tabular-nums">
+                                                        {item.distanceText}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] text-white/30 truncate mt-0.5 leading-tight">
+                                                {item.place_formatted || item.address || ""}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* No results message */}
+                        {searchQuery.trim().length > 0 && suggestions.length === 0 && !suggestionsLoading && (
+                            <div className="tg-map-glass-strong mt-2 w-full rounded-2xl p-4 text-center text-[11px] font-semibold text-white/30">
+                                No places found nearby
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

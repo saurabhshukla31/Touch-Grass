@@ -457,7 +457,7 @@ async function fetchRoamieInsights(analyticsData, appMode) {
         },
         essentials: {
             persona: "a witty, practical outdoor butler who helps users turn essential daily runs into fun mini-adventures.",
-            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, or getting fuel.",
+            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, salons, or getting fuel.",
             tone: "droll, helpful, slightly formal but witty and fun"
         }
     };
@@ -520,16 +520,16 @@ async function fetchNearbyPOIsForMode(lat, lng, appMode) {
     if (!token) return [];
 
     const modeCategories = {
-        explore: ["park", "museum", "tourist_attraction", "viewpoint"],
-        date: ["coffee_shop", "park", "restaurant", "bakery", "bookstore"],
-        escape: ["beach", "nature_preserve", "library", "park", "viewpoint"],
-        social: ["bar", "nightclub", "sports_club", "cafe"],
-        essentials: ["gas_station", "atm", "convenience_store", "hospital", "pharmacy"]
+        explore: ["tourist_attraction", "viewpoint", "market", "restaurant", "tourist_attraction", "museum"],
+        date: ["coffee_shop", "bookstore", "viewpoint", "bakery", "art_gallery", "restaurant"],
+        escape: ["library", "beach", "viewpoint", "nature_preserve", "trailhead", "nature_preserve"],
+        social: ["gym", "sports_field", "internet_cafe", "bar", "bar", "nightclub"],
+        essentials: ["atm", "gas_station", "convenience_store", "pharmacy", "beauty_salon", "hospital"]
     };
 
     const categoriesToSearch = modeCategories[appMode] || modeCategories.explore;
 
-    const searchPromises = categoriesToSearch.slice(0, 4).map(async (cat) => {
+    const searchPromises = categoriesToSearch.slice(0, 6).map(async (cat) => {
         try {
             const url = `https://api.mapbox.com/search/searchbox/v1/category/${cat}?access_token=${token}&proximity=${lng},${lat}&limit=2&language=en`;
             const res = await fetch(url);
@@ -595,7 +595,7 @@ async function fetchRoamieChatResponse(chatHistory, analyticsData, currentInsigh
         },
         essentials: {
             persona: "a witty, practical outdoor butler who helps users turn essential daily runs into fun mini-adventures.",
-            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, or getting fuel.",
+            focus: "running essential errands, visiting ATMs, convenience stores, pharmacies, salons, or getting fuel.",
             tone: "droll, helpful, slightly formal but witty and fun"
         }
     };

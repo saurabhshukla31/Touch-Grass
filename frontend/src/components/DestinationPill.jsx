@@ -48,12 +48,19 @@ export default function DestinationPill({
                         animate={{ opacity: 1 }}
                         className="flex min-w-0 flex-col items-start"
                     >
-                        <span
-                            data-testid="destination-name"
-                            className="block max-w-[60vw] truncate text-[13px] font-bold text-white"
-                        >
-                            {destination?.name || "Resolving…"}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                            <span
+                                data-testid="destination-name"
+                                className="block max-w-[50vw] truncate text-[13px] font-bold text-white"
+                            >
+                                {destination?.name || "Resolving…"}
+                            </span>
+                            {destination?.matchWarning && (
+                                <span className="inline-flex items-center rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[8.5px] font-extrabold uppercase tracking-wide text-amber-400/90 border border-amber-500/20 tg-no-select">
+                                    Partial Match
+                                </span>
+                            )}
+                        </div>
                         <span className="block max-w-[60vw] truncate text-[11px] text-white/45">
                             {destination?.address ||
                                 (distance != null
