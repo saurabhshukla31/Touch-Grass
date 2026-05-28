@@ -1445,6 +1445,25 @@ export default function InsightsView() {
             </motion.header>
 
             <div className="relative z-10">
+                {/* ── Roamie AI Insights ─────────────────────── */}
+                <RoamieInsights
+                    sessions={sessions}
+                    stats={stats}
+                    categories={categories}
+                    bars={bars}
+                    heat={heat}
+                    theme={theme}
+                    appMode={appMode}
+                    userLocation={userLocation}
+                    onFocusChange={setIsInputFocused}
+                    weather={weather}
+                />
+
+                {/* ── Weather Section ───────────────────────────── */}
+                <Section title="Current Weather">
+                    <WeatherCard weather={weather} loading={weatherLoading} error={weatherError} theme={theme} />
+                </Section>
+
                 {/* ── Hero stats grid ────────────────────────── */}
                 <Section title="Overview">
                     <div className="grid grid-cols-2 gap-3">
@@ -1490,147 +1509,6 @@ export default function InsightsView() {
                         />
                     </div>
                 </Section>
-
-                {/* ── Roamie AI Insights ─────────────────────── */}
-                <RoamieInsights
-                    sessions={sessions}
-                    stats={stats}
-                    categories={categories}
-                    bars={bars}
-                    heat={heat}
-                    theme={theme}
-                    appMode={appMode}
-                    userLocation={userLocation}
-                    onFocusChange={setIsInputFocused}
-                    weather={weather}
-                />
-
-                {/* ── Weather Section ───────────────────────────── */}
-                <Section title="Current Weather">
-                    <WeatherCard weather={weather} loading={weatherLoading} error={weatherError} theme={theme} />
-                </Section>
-
-                {/* ── Category breakdown ─────────────────────── */}
-                {sessions.length > 0 && (
-                    <Section title="Categories">
-                        <CategoryDonut categories={categories} theme={theme} />
-                    </Section>
-                )}
-
-                {/* ── Exploration highlights ─────────────────── */}
-                {sessions.length > 0 && (
-                    <Section title="Exploration">
-                        <div className="rounded-3xl p-5 tg-glass">
-                            <div className="flex flex-col gap-3">
-                                {stats.favCat && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-white/50">
-                                            Favorite Category
-                                        </span>
-                                        <span className="text-sm font-bold text-white">
-                                            {stats.favCat}
-                                        </span>
-                                    </div>
-                                )}
-                                {stats.mostVisited && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-white/50">
-                                            Most Visited
-                                        </span>
-                                        <span className="max-w-[55%] truncate text-sm font-bold text-white">
-                                            {stats.mostVisited}
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs text-white/50">
-                                        Longest Session
-                                    </span>
-                                    <span className="text-sm font-bold text-white">
-                                        {formatDuration(stats.longestSession)}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs text-white/50">
-                                        Avg Session
-                                    </span>
-                                    <span className="text-sm font-bold text-white">
-                                        {formatDuration(stats.avgDuration)}
-                                    </span>
-                                </div>
-                                {stats.streaks.longest > 0 && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-white/50">
-                                            Best Streak
-                                        </span>
-                                        <span className="text-sm font-bold text-emerald-400">
-                                            {stats.streaks.longest} days
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </Section>
-                )}
-
-                {/* ── Mode breakdown ─────────────────────────── */}
-                {sessions.length > 0 &&
-                    (stats.walkCount > 0 ||
-                        stats.bikeCount > 0 ||
-                        stats.carCount > 0) && (
-                        <Section title="By Mode">
-                            <div className="flex flex-col gap-2">
-                                {stats.walkCount > 0 && (
-                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                                            <Footprints size={16} strokeWidth={1.8} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-bold text-white">
-                                                Walking
-                                            </div>
-                                            <div className="text-[11px] text-white/45">
-                                                {stats.walkCount} sessions ·{" "}
-                                                {stats.walkKm.toFixed(1)} km
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                )}
-                                {stats.bikeCount > 0 && (
-                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                                            <Bike size={16} strokeWidth={1.8} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-bold text-white">
-                                                Cycling
-                                            </div>
-                                            <div className="text-[11px] text-white/45">
-                                                {stats.bikeCount} sessions ·{" "}
-                                                {stats.bikeKm.toFixed(1)} km
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                {stats.carCount > 0 && (
-                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
-                                            <Car size={16} strokeWidth={1.8} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-sm font-bold text-white">
-                                                Driving
-                                            </div>
-                                            <div className="text-[11px] text-white/45">
-                                                {stats.carCount} sessions
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </Section>
-                    )}
 
                 {/* ── Sessions (rich cards) ──────────────────── */}
                 <Section title="Sessions">
@@ -1789,6 +1667,129 @@ export default function InsightsView() {
                         </ul>
                     )}
                 </Section>
+
+                {/* ── Category breakdown ─────────────────────── */}
+                {sessions.length > 0 && (
+                    <Section title="Categories">
+                        <CategoryDonut categories={categories} theme={theme} />
+                    </Section>
+                )}
+
+                {/* ── Exploration highlights ─────────────────── */}
+                {sessions.length > 0 && (
+                    <Section title="Exploration">
+                        <div className="rounded-3xl p-5 tg-glass">
+                            <div className="flex flex-col gap-3">
+                                {stats.favCat && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-white/50">
+                                            Favorite Category
+                                        </span>
+                                        <span className="text-sm font-bold text-white">
+                                            {stats.favCat}
+                                        </span>
+                                    </div>
+                                )}
+                                {stats.mostVisited && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-white/50">
+                                            Most Visited
+                                        </span>
+                                        <span className="max-w-[55%] truncate text-sm font-bold text-white">
+                                            {stats.mostVisited}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-white/50">
+                                        Longest Session
+                                    </span>
+                                    <span className="text-sm font-bold text-white">
+                                        {formatDuration(stats.longestSession)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-white/50">
+                                        Avg Session
+                                    </span>
+                                    <span className="text-sm font-bold text-white">
+                                        {formatDuration(stats.avgDuration)}
+                                    </span>
+                                </div>
+                                {stats.streaks.longest > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-white/50">
+                                            Best Streak
+                                        </span>
+                                        <span className="text-sm font-bold text-emerald-400">
+                                            {stats.streaks.longest} days
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Section>
+                )}
+
+                {/* ── Mode breakdown ─────────────────────────── */}
+                {sessions.length > 0 &&
+                    (stats.walkCount > 0 ||
+                        stats.bikeCount > 0 ||
+                        stats.carCount > 0) && (
+                        <Section title="By Mode">
+                            <div className="flex flex-col gap-2">
+                                {stats.walkCount > 0 && (
+                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                                            <Footprints size={16} strokeWidth={1.8} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="text-sm font-bold text-white">
+                                                Walking
+                                            </div>
+                                            <div className="text-[11px] text-white/45">
+                                                {stats.walkCount} sessions ·{" "}
+                                                {stats.walkKm.toFixed(1)} km
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}
+                                {stats.bikeCount > 0 && (
+                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                                            <Bike size={16} strokeWidth={1.8} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="text-sm font-bold text-white">
+                                                Cycling
+                                            </div>
+                                            <div className="text-[11px] text-white/45">
+                                                {stats.bikeCount} sessions ·{" "}
+                                                {stats.bikeKm.toFixed(1)} km
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {stats.carCount > 0 && (
+                                    <div className="flex items-center gap-3 rounded-2xl p-4 tg-glass">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+                                            <Car size={16} strokeWidth={1.8} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="text-sm font-bold text-white">
+                                                Driving
+                                            </div>
+                                            <div className="text-[11px] text-white/45">
+                                                {stats.carCount} sessions
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </Section>
+                    )}
+
 
 
                 {/* ── Storage / clear data ───────────────────── */}

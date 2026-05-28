@@ -350,11 +350,13 @@ function Shell() {
     animatingMode,
   } = useApp();
 
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(() => {
+    const hasOpened = localStorage.getItem("tg_has_opened");
+    return !hasOpened;
+  });
   useEffect(() => {
     const hasOpened = localStorage.getItem("tg_has_opened");
     if (!hasOpened) {
-      setShowSplash(true);
       const timer = setTimeout(() => {
         setShowSplash(false);
         localStorage.setItem("tg_has_opened", "true");
@@ -370,8 +372,10 @@ function Shell() {
 
   // Auto-watch geolocation once we're active or on map/compass/home/insights screens.
   useEffect(() => {
-    startWatchingLocation();
-  }, [startWatchingLocation]);
+    if (!showSplash) {
+      startWatchingLocation();
+    }
+  }, [startWatchingLocation, showSplash]);
 
   const handleSelectCategory = async (cat) => {
     haptics.select();
