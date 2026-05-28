@@ -1238,63 +1238,19 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
 // Main InsightsView
 // ══════════════════════════════════════════════════════════════
 export default function InsightsView() {
-    const { units, theme, appMode, userLocation } = useApp();
+    const {
+        units,
+        theme,
+        appMode,
+        userLocation,
+        weather,
+        weatherLoading,
+        weatherError
+    } = useApp();
     const [sessions, setSessions] = useState([]);
     const [confirming, setConfirming] = useState(false);
     const [wiping, setWiping] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false);
-
-    const [weather, setWeather] = useState(null);
-    const [weatherLoading, setWeatherLoading] = useState(false);
-    const [weatherError, setWeatherError] = useState(null);
-
-    useEffect(() => {
-        if (!userLocation || !userLocation.lat || !userLocation.lng) {
-            setWeatherError("Enable GPS location to see current weather.");
-            return;
-        }
-
-        let isMounted = true;
-        async function fetchWeather() {
-            setWeatherLoading(true);
-            setWeatherError(null);
-            try {
-                const lat = userLocation.lat;
-                const lng = userLocation.lng;
-                const res = await fetch(
-                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m`
-                );
-                if (!res.ok) throw new Error("Failed to fetch weather data.");
-                const data = await res.json();
-                if (isMounted && data.current) {
-                    const current = data.current;
-                    setWeather({
-                        temp: current.temperature_2m,
-                        apparentTemp: current.apparent_temperature,
-                        humidity: current.relative_humidity_2m,
-                        precipitation: current.precipitation,
-                        windSpeed: current.wind_speed_10m,
-                        code: current.weather_code,
-                        unitTemp: data.current_units?.temperature_2m || "°C",
-                        unitWind: data.current_units?.wind_speed_10m || "km/h",
-                    });
-                }
-            } catch (err) {
-                if (isMounted) {
-                    setWeatherError("Failed to load weather.");
-                    console.error(err);
-                }
-            } finally {
-                if (isMounted) {
-                    setWeatherLoading(false);
-                }
-            }
-        }
-        fetchWeather();
-        return () => {
-            isMounted = false;
-        };
-    }, [userLocation]);
 
     const load = async () => {
         try {
@@ -1478,7 +1434,7 @@ export default function InsightsView() {
             <motion.header
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative z-10 pt-6"
+                className="relative z-10 pt-4 pb-2"
             >
                 <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
                     Stats
@@ -1493,6 +1449,12 @@ export default function InsightsView() {
                 <Section title="Overview">
                     <div className="grid grid-cols-2 gap-3">
                         <StatCard
+                            label="Sessions"
+                            value={sessions.length}
+                            icon={MapPin}
+                            color="blue"
+                        />
+                        <StatCard
                             label="Distance"
                             value={
                                 stats.totalActualKm >= 1
@@ -1503,10 +1465,16 @@ export default function InsightsView() {
                             color="emerald"
                         />
                         <StatCard
-                            label="Sessions"
-                            value={sessions.length}
-                            icon={MapPin}
-                            color="blue"
+                            label="Time"
+                            value={formatDuration(stats.totalDurationSec)}
+                            icon={Clock}
+                            color="cyan"
+                        />
+                        <StatCard
+                            label="Places"
+                            value={stats.uniquePlaces}
+                            icon={Star}
+                            color="violet"
                         />
                         <StatCard
                             label="Streak"
@@ -1515,22 +1483,10 @@ export default function InsightsView() {
                             color="amber"
                         />
                         <StatCard
-                            label="Time"
-                            value={formatDuration(stats.totalDurationSec)}
-                            icon={Clock}
-                            color="cyan"
-                        />
-                        <StatCard
                             label="Avg Session"
                             value={formatDuration(stats.avgDuration)}
                             icon={TrendingUp}
                             color="rose"
-                        />
-                        <StatCard
-                            label="Places"
-                            value={stats.uniquePlaces}
-                            icon={Star}
-                            color="violet"
                         />
                     </div>
                 </Section>

@@ -1,16 +1,16 @@
 # RoamOut
 
-A premium, mobile-first Progressive Web App (PWA) designed to reconnect users with the physical world. Follow along with real-time compass and map guides to step outside, explore nearby points of interest, and verify your presence in nature through on-device camera analysis.
+A premium, mobile-first Progressive Web App (PWA) designed to reconnect users with the physical world. Follow along with real-time compass and map guides to step outside and explore nearby points of interest.
 
 ## Features
 
 - **Compass navigation** — magnetometer-driven compass rose showing live bearing, distance, and ETA
 - **Custom Map view** — dark Mapbox GL JS layer showing your location, destination, course-up navigation, and traveled path
 - **Real-time POI resolution** — automatic lookup of nearest cafés, parks, gyms, essentials, or randomized mystery locations using Mapbox Search Box API
-- **Grass verification** — on-device green-pixel analysis using your phone's camera to verify when you've reached nature, saving moments to a local gallery
-- **Insights & stats** — 30-day activity heatmap, session streak tracker, total distance, and transportation mode breakdowns
+- **Insights & stats** — 30-day activity heatmap, session streak tracker, total distance, and transportation mode breakdowns. The overview stats card grid is structured into a clean, custom order (Sessions, Distance, Time, Places, Streak, Avg Session).
+- **Throttled Weather Integration** — Location-aware weather fetching with coordinate/temporal thresholds to prevent rate limits, frozen dynamically while viewing the stats screen to prevent distracting layout shifts.
 - **Dynamic travel profiles** — customizable routing presets for walking, cycling, or driving
-- **iOS-26 Liquid Glass UI** — glassmorphism design featuring smooth GPU-composited transitions, haptic feedback, and a fluid dark/light theme switch
+- **iOS-26 Liquid Glass UI** — glassmorphism design featuring smooth GPU-composited transitions, haptic feedback, unified header alignment, and a fluid dark/light theme switch
 
 ## Tech Stack
 
@@ -57,9 +57,8 @@ frontend/
 │   │   ├── CompassView.jsx           # Main compass page & magnetometer interface
 │   │   ├── DesktopInterstitial.jsx   # Frosted glass gate for desktop users
 │   │   ├── DestinationPill.jsx       # Floating session detail toggle
-│   │   ├── GrassVerification.jsx     # Camera viewport & pixel analyzer
 │   │   ├── HomeScreen.jsx            # Category grid page (Explore, Date, Essentials, etc.)
-│   │   ├── InsightsView.jsx          # User statistics page, weekly chart, and gallery
+│   │   ├── InsightsView.jsx          # User statistics page and weekly chart
 │   │   ├── MapView.jsx               # Mapbox GL routing rendering & controls
 │   │   ├── SettingsView.jsx          # Units, travel modes, themes, and storage setup
 │   │   └── TabBar.jsx                # Bottom navigation bar with spring animations

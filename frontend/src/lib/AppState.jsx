@@ -35,6 +35,9 @@ const initial = {
     error: null,
     pillOpen: false,
     theme: "dark",
+    weather: null,
+    weatherLoading: false,
+    weatherError: null,
 };
 
 export function AppProvider({ children }) {
@@ -43,6 +46,7 @@ export function AppProvider({ children }) {
     const lastVectorRef = useRef({ cos: 0, sin: 0, initialized: false });
     const headingRef = useRef(null);
     const headingListeners = useRef(new Set());
+    const lastWeatherFetchRef = useRef({ lat: null, lng: null, timestamp: 0 });
 
     const subscribeHeading = useCallback((cb) => {
         headingListeners.current.add(cb);
@@ -298,7 +302,7 @@ export function AppProvider({ children }) {
         [stopWatchingLocation],
     );
 
-    useEffect(() => {
+     useEffect(() => {
         if (!state.theme) return;
         if (state.theme === "light") {
             document.documentElement.classList.add("light");
@@ -308,6 +312,93 @@ export function AppProvider({ children }) {
             document.documentElement.classList.add("dark");
         }
     }, [state.theme]);
+
+    useEffect(() => {
+        if (!state.userLocation || !state.userLocation.lat || !state.userLocation.lng) {
+            if (state.weatherError !== "Enable GPS location to see current weather.") {
+                update({ weatherError: "Enable GPS location to see current weather." });
+            }
+            return;
+        }
+
+        const { lat, lng } = state.userLocation;
+        const now = Date.now();
+
+        // 1. If user is in stats page ("insights") and we already have weather, DO NOT update.
+        if (state.currentTab === "insights" && state.weather !== null) {
+            return;
+        }
+
+        // 2. To prevent spamming, only fetch if:
+        //    - We don't have weather yet
+        //    - OR the user has moved more than some threshold (e.g., 500m)
+        //    - OR more than 10 minutes have passed.
+        const lastFetch = lastWeatherFetchRef.current;
+        let shouldFetch = false;
+
+        if (!state.weather) {
+            shouldFetch = true;
+        } else if (now - lastFetch.timestamp > 10 * 60 * 1000) {
+            // 10 minutes passed
+            shouldFetch = true;
+        } else if (lastFetch.lat !== null && lastFetch.lng !== null) {
+            // Check distance (approximate or using haversine)
+            // 0.005 degrees is approx 500 meters
+            const latDiff = Math.abs(lat - lastFetch.lat);
+            const lngDiff = Math.abs(lng - lastFetch.lng);
+            if (latDiff > 0.005 || lngDiff > 0.005) {
+                shouldFetch = true;
+            }
+        } else {
+            shouldFetch = true;
+        }
+
+        if (!shouldFetch) return;
+
+        let isMounted = true;
+        async function fetchWeather() {
+            update({ weatherLoading: true, weatherError: null });
+            try {
+                const res = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m`
+                );
+                if (!res.ok) throw new Error("Failed to fetch weather data.");
+                const data = await res.json();
+                if (isMounted && data.current) {
+                    const current = data.current;
+                    lastWeatherFetchRef.current = { lat, lng, timestamp: Date.now() };
+                    update({
+                        weather: {
+                            temp: current.temperature_2m,
+                            apparentTemp: current.apparent_temperature,
+                            humidity: current.relative_humidity_2m,
+                            precipitation: current.precipitation,
+                            windSpeed: current.wind_speed_10m,
+                            code: current.weather_code,
+                            unitTemp: data.current_units?.temperature_2m || "°C",
+                            unitWind: data.current_units?.wind_speed_10m || "km/h",
+                        },
+                        weatherLoading: false,
+                        weatherError: null,
+                    });
+                }
+            } catch (err) {
+                if (isMounted) {
+                    update({
+                        weatherLoading: false,
+                        weatherError: "Failed to load weather.",
+                    });
+                    console.error(err);
+                }
+            }
+        }
+
+        fetchWeather();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [state.userLocation, state.currentTab, state.weather, state.weatherError, update]);
 
     useEffect(() => {
         if (!state.appMode) return;
