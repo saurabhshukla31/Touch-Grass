@@ -664,7 +664,7 @@ Respond directly to the user's latest message. Keep the conversation contextuall
 }
 
 // ── Roamie AI Insights Component ───────────────────────────────
-function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMode, userLocation, onFocusChange, weather }) {
+function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMode, userLocation, weather }) {
     const [insights, setInsights] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -674,7 +674,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
     const [chatLoading, setChatLoading] = useState(false);
     const [chatError, setChatError] = useState(null);
 
-    const chatEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
     const cardRef = useRef(null);
     const apiKey = process.env.REACT_APP_GROQ_API_KEY;
 
@@ -721,8 +721,11 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
 
     // Scroll to bottom when messages or loading state changes
     useEffect(() => {
-        if (chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: "smooth"
+            });
         }
     }, [chatMessages, chatLoading]);
 
@@ -1113,7 +1116,7 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                     </div>
 
                                     {/* Chat Messages Area */}
-                                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1 mb-3 no-scrollbar">
+                                    <div ref={chatContainerRef} className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-1 mb-3 no-scrollbar">
                                         {chatMessages.length === 0 ? (
                                             <div className={`text-[11px] py-3 text-center rounded-xl border ${theme === "light"
                                                     ? "text-black/45 bg-black/[0.02] border-black/[0.04]"
@@ -1163,7 +1166,6 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                                 {chatError}
                                             </div>
                                         )}
-                                        <div ref={chatEndRef} />
                                     </div>
 
                                     {/* Quick Suggestion Chips */}
@@ -1189,17 +1191,12 @@ function RoamieInsights({ sessions, stats, categories, bars, heat, theme, appMod
                                             value={chatInput}
                                             onChange={(e) => setChatInput(e.target.value)}
                                             onFocus={() => {
-                                                if (onFocusChange) onFocusChange(true);
                                                 if (cardRef.current) {
                                                     cardRef.current.scrollTop = 0;
                                                     cardRef.current.scrollLeft = 0;
                                                 }
-                                                setTimeout(() => {
-                                                    cardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                                }, 150);
                                             }}
                                             onBlur={() => {
-                                                if (onFocusChange) onFocusChange(false);
                                                 if (cardRef.current) {
                                                     cardRef.current.scrollTop = 0;
                                                     cardRef.current.scrollLeft = 0;
@@ -1246,7 +1243,6 @@ export default function InsightsView() {
     const [sessions, setSessions] = useState([]);
     const [confirming, setConfirming] = useState(false);
     const [wiping, setWiping] = useState(false);
-    const [isInputFocused, setIsInputFocused] = useState(false);
 
     const load = async () => {
         try {
@@ -1422,8 +1418,7 @@ export default function InsightsView() {
     return (
         <div
             data-testid="insights-view"
-            className={`relative w-full px-5 pt-safe transition-[padding-bottom] duration-300 ease-out tg-no-select ${isInputFocused ? "pb-[420px]" : "pb-40"
-                }`}
+            className="relative w-full px-5 pt-safe transition-[padding-bottom] duration-300 ease-out tg-no-select pb-40"
         >
             <div className="tg-ambient" />
             <motion.header
@@ -1450,7 +1445,6 @@ export default function InsightsView() {
                     theme={theme}
                     appMode={appMode}
                     userLocation={userLocation}
-                    onFocusChange={setIsInputFocused}
                     weather={weather}
                 />
 
